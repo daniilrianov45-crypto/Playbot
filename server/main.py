@@ -393,6 +393,66 @@ def api_feed():
     return {"feed": db.get_feed()}
 
 
+# ------------------------------------------------------------------ задания
+
+TASKS = [
+    {"id": "crash3", "emoji": "🚀", "title": "Сыграй 3 раунда краша",
+     "goal": 3, "reward": 150, "metric": "crash_rounds"},
+    {"id": "slots5", "emoji": "🎰", "title": "Сделай 5 спинов в слотах",
+     "goal": 5, "reward": 150, "metric": "slots_spins"},
+    {"id": "mines_win", "emoji": "💣", "title": "Выиграй раунд в минах",
+     "goal": 1, "reward": 200, "metric": "mines_wins"},
+    {"id": "cases3", "emoji": "🎁", "title": "Открой 3 кейса",
+     "goal": 3, "reward": 200, "metric": "cases_opened"},
+    {"id": "invite1", "emoji": "🤝", "title": "Пригласи друга",
+     "goal": 1, "reward": 500, "metric": "invited"},
+]
+
+
+@app.get("/api/tasks")
+def api_tasks(user: dict = Depends(current_user)):
+    metrics = db.task_metrics(user["id"])
+    claimed = db.claimed_tasks(user["id"])
+    return {"tasks": [
+        {"id": t["id"], "emoji": t["emoji"], "title": t["title"],
+         "goal": t["goal"], "reward": t["reward"],
+         "progress": min(metrics[t["metric"]], t["goal"]),
+         "claimed": t["id"] in claimed}
+        for t in TASKS
+    ]}
+
+
+class TaskClaimBody(BaseModel):
+    task_id: str
+
+
+@app.post("/api/tasks/claim")
+def api_tasks_claim(body: TaskClaimBody, user: dict = Depends(current_user)):
+    task = next((t for t in TASKS if t["id"] == body.task_id), None)
+    if task is None:
+        raise HTTPException(400, "Нет такого задания")
+    metrics = db.task_metrics(user["id"])
+    if metrics[task["metric"]] < task["goal"]:
+        raise HTTPException(400, "Задание ещё не выполнено")
+    if not db.claim_task(user["id"], task["id"], task["reward"]):
+        raise HTTPException(400, "Награда уже получена")
+    return {"reward": task["reward"], "balance": db.get_balance(user["id"])}
+
+
+# ------------------------------------------------------------------ промокоды
+
+class PromoBody(BaseModel):
+    code: str
+
+
+@app.post("/api/promo/redeem")
+def api_promo_redeem(body: PromoBody, user: dict = Depends(current_user)):
+    result = db.redeem_promo(user["id"], body.code)
+    if isinstance(result, str):
+        raise HTTPException(400, result)
+    return {"reward": result, "balance": db.get_balance(user["id"])}
+
+
 @app.get("/api/referral")
 def api_referral(user: dict = Depends(current_user)):
     stats = db.referral_stats(user["id"])

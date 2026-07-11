@@ -1,13 +1,35 @@
 // Навигация, баланс, модалка честной игры, инициализация.
 (() => {
-  // табы
+  function showScreen(name) {
+    document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
+    document.getElementById("screen-" + name).classList.add("active");
+  }
+
+  // нижнее меню
   document.querySelectorAll(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
-      document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
       btn.classList.add("active");
-      document.getElementById("screen-" + btn.dataset.screen).classList.add("active");
+      showScreen(btn.dataset.screen);
+      if (btn.dataset.screen === "tasks") Tasks.load();
     });
+  });
+
+  // хаб игр -> конкретная игра
+  document.querySelectorAll(".hub-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const game = card.dataset.game;
+      if (game === "cases-tab") {  // кейсы живут в своей вкладке
+        document.querySelector('.nav-btn[data-screen="cases"]').click();
+        return;
+      }
+      showScreen(game);
+    });
+  });
+
+  // кнопки «назад» внутри игр -> хаб
+  document.querySelectorAll(".back-btn[data-back]").forEach((btn) => {
+    btn.addEventListener("click", () => showScreen("games"));
   });
 
   // модалка честной игры
@@ -30,6 +52,20 @@
         r.revealed.server_seed + `  (client: ${r.revealed.client_seed}, игр: ${r.revealed.last_nonce})`;
       document.getElementById("fair-revealed").classList.remove("hidden");
       toast("Сид раскрыт — можно проверять прошлые игры", "win");
+    } catch (e) { toast(e.message, "lose"); }
+  });
+
+  // промокод
+  document.getElementById("promo-btn").addEventListener("click", async () => {
+    const input = document.getElementById("promo-input");
+    const code = input.value.trim();
+    if (!code) { toast("Введи промокод"); return; }
+    try {
+      const r = await API.call("promo/redeem", { code });
+      setBalance(r.balance);
+      toast(`Промокод активирован: +${r.reward.toLocaleString("ru-RU")} 🪙`, "win");
+      haptic("success");
+      input.value = "";
     } catch (e) { toast(e.message, "lose"); }
   });
 

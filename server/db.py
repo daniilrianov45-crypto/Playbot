@@ -41,6 +41,25 @@ CREATE TABLE IF NOT EXISTS case_opens(
     last_open INTEGER NOT NULL,
     PRIMARY KEY(user_id, case_id)
 );
+CREATE TABLE IF NOT EXISTS task_claims(
+    user_id INTEGER NOT NULL,
+    task_id TEXT NOT NULL,
+    claimed_at INTEGER NOT NULL,
+    PRIMARY KEY(user_id, task_id)
+);
+CREATE TABLE IF NOT EXISTS promo_codes(
+    code TEXT PRIMARY KEY,
+    reward INTEGER NOT NULL,
+    max_uses INTEGER NOT NULL,
+    uses INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS promo_redemptions(
+    user_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    redeemed_at INTEGER NOT NULL,
+    PRIMARY KEY(user_id, code)
+);
 CREATE TABLE IF NOT EXISTS seeds(
     user_id INTEGER PRIMARY KEY,
     server_seed TEXT NOT NULL,
@@ -251,6 +270,100 @@ def set_referrer(user_id: int, ref_id: int) -> bool:
         )
         _conn.commit()
         return cur.rowcount == 1
+
+
+# ------------------------------------------------------------- задания
+
+def task_metrics(user_id: int) -> dict:
+    """Счётчики действий пользователя для прогресса заданий."""
+    with _lock:
+        rows = _conn.execute(
+            "SELECT game, COUNT(*) AS n, SUM(CASE WHEN payout > 0 THEN 1 ELSE 0 END) AS wins"
+            " FROM history WHERE user_id=? GROUP BY game",
+            (user_id,),
+        ).fetchall()
+        invited = _conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referrer_id=?", (user_id,)
+        ).fetchone()["c"]
+    by_game = {r["game"]: r for r in rows}
+
+    def count(game):
+        return by_game[game]["n"] if game in by_game else 0
+
+    return {
+        "crash_rounds": count("crash"),
+        "slots_spins": count("slots"),
+        "mines_wins": by_game["mines"]["wins"] if "mines" in by_game else 0,
+        "cases_opened": count("case"),
+        "invited": invited,
+    }
+
+
+def claimed_tasks(user_id: int) -> set:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT task_id FROM task_claims WHERE user_id=?", (user_id,)
+        ).fetchall()
+        return {r["task_id"] for r in rows}
+
+
+def claim_task(user_id: int, task_id: str, reward: int) -> bool:
+    """Отмечает задание полученным и зачисляет награду; False, если уже забрано."""
+    with _lock:
+        try:
+            _conn.execute(
+                "INSERT INTO task_claims(user_id, task_id, claimed_at) VALUES(?,?,?)",
+                (user_id, task_id, int(time.time())),
+            )
+        except sqlite3.IntegrityError:
+            return False
+        _conn.execute(
+            "UPDATE users SET balance = balance + ? WHERE id=?", (reward, user_id)
+        )
+        _conn.commit()
+        return True
+
+
+# ------------------------------------------------------------- промокоды
+
+def add_promo(code: str, reward: int, max_uses: int) -> bool:
+    with _lock:
+        try:
+            _conn.execute(
+                "INSERT INTO promo_codes(code, reward, max_uses, created_at) VALUES(?,?,?,?)",
+                (code.upper(), reward, max_uses, int(time.time())),
+            )
+            _conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+
+def redeem_promo(user_id: int, code: str) -> int | str:
+    """Возвращает награду или строку с причиной отказа."""
+    code = code.strip().upper()
+    with _lock:
+        promo = _conn.execute(
+            "SELECT * FROM promo_codes WHERE code=?", (code,)
+        ).fetchone()
+        if promo is None:
+            return "Такого промокода нет"
+        if promo["uses"] >= promo["max_uses"]:
+            return "Промокод уже разобрали"
+        try:
+            _conn.execute(
+                "INSERT INTO promo_redemptions(user_id, code, redeemed_at) VALUES(?,?,?)",
+                (user_id, code, int(time.time())),
+            )
+        except sqlite3.IntegrityError:
+            return "Вы уже активировали этот код"
+        _conn.execute("UPDATE promo_codes SET uses = uses + 1 WHERE code=?", (code,))
+        _conn.execute(
+            "UPDATE users SET balance = balance + ? WHERE id=?",
+            (promo["reward"], user_id),
+        )
+        _conn.commit()
+        return promo["reward"]
 
 
 def referral_stats(user_id: int) -> dict:
