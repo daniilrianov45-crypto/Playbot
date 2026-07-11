@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS users(
     first_name TEXT,
     photo_url TEXT DEFAULT '',
     balance INTEGER NOT NULL,
+    referrer_id INTEGER,
+    ref_earned INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL
 );
 CREATE TABLE IF NOT EXISTS inventory(
@@ -71,11 +73,28 @@ CREATE TABLE IF NOT EXISTS history(
 """
 with _lock:
     _conn.executescript(_SCHEMA)
-    try:  # миграция старых баз без photo_url
-        _conn.execute("ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT ''")
-    except sqlite3.OperationalError:
-        pass
+    for migration in (  # миграции старых баз
+        "ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT ''",
+        "ALTER TABLE users ADD COLUMN referrer_id INTEGER",
+        "ALTER TABLE users ADD COLUMN ref_earned INTEGER NOT NULL DEFAULT 0",
+    ):
+        try:
+            _conn.execute(migration)
+        except sqlite3.OperationalError:
+            pass
     _conn.commit()
+
+# уровни партнёрки: (минимум приглашённых, доля от проигрышей друзей в %)
+REF_LEVELS = [(20, 20), (5, 15), (0, 10)]
+REF_BONUS_FRIEND = 1000   # бонус приглашённому
+REF_BONUS_INVITER = 500   # бонус пригласившему за каждого друга
+
+
+def ref_percent(invited: int) -> int:
+    for need, pct in REF_LEVELS:
+        if invited >= need:
+            return pct
+    return REF_LEVELS[-1][1]
 
 
 def get_or_create_user(user_id: int, username: str, first_name: str, photo_url: str = "") -> dict:
@@ -185,12 +204,70 @@ def clear_active_game(user_id: int, game: str) -> None:
 
 
 def add_history(user_id: int, game: str, bet: int, payout: int, detail: dict) -> None:
+    """Пишет раунд в историю и начисляет партнёрскую комиссию рефереру."""
     with _lock:
         _conn.execute(
             "INSERT INTO history(user_id, game, bet, payout, detail, created_at) VALUES(?,?,?,?,?,?)",
             (user_id, game, bet, payout, json.dumps(detail), int(time.time())),
         )
+        net = bet - payout  # прибыль площадки с раунда
+        if net > 0:
+            row = _conn.execute(
+                "SELECT referrer_id FROM users WHERE id=?", (user_id,)
+            ).fetchone()
+            ref = row["referrer_id"] if row else None
+            if ref:
+                invited = _conn.execute(
+                    "SELECT COUNT(*) AS c FROM users WHERE referrer_id=?", (ref,)
+                ).fetchone()["c"]
+                commission = net * ref_percent(invited) // 100
+                if commission > 0:
+                    _conn.execute(
+                        "UPDATE users SET balance = balance + ?, ref_earned = ref_earned + ?"
+                        " WHERE id=?",
+                        (commission, commission, ref),
+                    )
         _conn.commit()
+
+
+def user_exists(user_id: int) -> bool:
+    with _lock:
+        return _conn.execute(
+            "SELECT 1 FROM users WHERE id=?", (user_id,)
+        ).fetchone() is not None
+
+
+def set_referrer(user_id: int, ref_id: int) -> bool:
+    """Привязывает реферера один раз; False, если нельзя (сам себя, нет такого, уже есть)."""
+    if user_id == ref_id:
+        return False
+    with _lock:
+        ref = _conn.execute("SELECT 1 FROM users WHERE id=?", (ref_id,)).fetchone()
+        if ref is None:
+            return False
+        cur = _conn.execute(
+            "UPDATE users SET referrer_id=? WHERE id=? AND referrer_id IS NULL",
+            (ref_id, user_id),
+        )
+        _conn.commit()
+        return cur.rowcount == 1
+
+
+def referral_stats(user_id: int) -> dict:
+    with _lock:
+        invited = _conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE referrer_id=?", (user_id,)
+        ).fetchone()["c"]
+        earned = _conn.execute(
+            "SELECT ref_earned FROM users WHERE id=?", (user_id,)
+        ).fetchone()["ref_earned"]
+    pct = ref_percent(invited)
+    next_level = None
+    for need, next_pct in sorted(REF_LEVELS):
+        if invited < need:
+            next_level = {"at": need, "percent": next_pct}
+            break
+    return {"invited": invited, "earned": earned, "percent": pct, "next_level": next_level}
 
 
 def crash_history(user_id: int, limit: int = 10) -> list[float]:

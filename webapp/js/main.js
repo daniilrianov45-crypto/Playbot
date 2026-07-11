@@ -47,6 +47,7 @@
       Mines.resume();
       Cases.load();
       Profile.load();
+      Profile.loadReferral();
     } catch (e) {
       toast("Не удалось подключиться: " + e.message, "lose");
     }

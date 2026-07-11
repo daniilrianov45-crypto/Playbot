@@ -47,5 +47,45 @@ const Profile = (() => {
     } catch (e) {}
   }
 
-  return { setUser, load };
+  // ---------- партнёрка ----------
+  let refLink = "";
+
+  function renderReferral(r) {
+    refLink = r.link || "";
+    document.getElementById("ref-pct").textContent = r.percent + "%";
+    document.getElementById("ref-invited").textContent = r.invited;
+    document.getElementById("ref-earned").textContent = r.earned.toLocaleString("ru-RU");
+    const bar = document.getElementById("ref-bar");
+    const next = document.getElementById("ref-next");
+    if (r.next_level) {
+      bar.style.width = Math.min(100, r.invited / r.next_level.at * 100) + "%";
+      next.textContent =
+        `Ещё ${r.next_level.at - r.invited} друзей — и доля вырастет до ${r.next_level.percent}%`;
+    } else {
+      bar.style.width = "100%";
+      next.textContent = "Максимальный уровень! 👑";
+    }
+  }
+
+  async function loadReferral() {
+    try { renderReferral(await API.call("referral")); } catch (e) {}
+  }
+
+  document.getElementById("ref-share").addEventListener("click", () => {
+    if (!refLink) { toast("Ссылка появится после настройки бота"); return; }
+    const text = "Играй со мной в PlayBot — получишь 1000 монет на старте! 🎁";
+    const url = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`;
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, "_blank");
+  });
+
+  document.getElementById("ref-copy").addEventListener("click", async () => {
+    if (!refLink) { toast("Ссылка появится после настройки бота"); return; }
+    try {
+      await navigator.clipboard.writeText(refLink);
+      toast("Ссылка скопирована ✅", "win");
+    } catch (e) { toast(refLink); }
+  });
+
+  return { setUser, load, loadReferral };
 })();

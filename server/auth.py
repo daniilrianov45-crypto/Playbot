@@ -28,6 +28,9 @@ def validate_init_data(init_data: str) -> dict | None:
             return None
         if time.time() - int(pairs.get("auth_date", 0)) > AUTH_TTL:
             return None
-        return json.loads(pairs["user"])
+        user = json.loads(pairs["user"])
+        # параметр из реферальной ссылки t.me/bot?startapp=ref_123
+        user["_start_param"] = pairs.get("start_param", "")
+        return user
     except (KeyError, ValueError):
         return None

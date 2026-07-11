@@ -239,6 +239,32 @@ nav {
 .inventory-empty .inv-emoji { font-size: 52px; margin-bottom: 8px; }
 .inventory-empty .inv-sub { font-weight: 400; font-size: 13px; margin-top: 4px; }
 
+/* ---------- партнёрка ---------- */
+.ref-card {
+  background: var(--card); border-radius: 16px; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px;
+}
+.ref-top { display: flex; align-items: center; gap: 14px; }
+.ref-pct-box { text-align: center; }
+.ref-pct { font-size: 30px; font-weight: 900; color: var(--gold); }
+.ref-sub { font-size: 11px; color: var(--muted); }
+.ref-stat { flex: 1; text-align: center; }
+.ref-stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+.ref-stat span { font-size: 11px; color: var(--muted); }
+.ref-progress {
+  height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden;
+}
+.ref-bar {
+  height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold));
+  border-radius: 4px; width: 0; transition: width .4s;
+}
+.ref-next { font-size: 12px; color: var(--muted); text-align: center; }
+.ref-benefits {
+  font-size: 13px; color: var(--muted); line-height: 1.5;
+  background: var(--card2); border-radius: 10px; padding: 10px;
+}
+.ref-benefits b { color: var(--text); }
+
 /* ---------- модалка/тост ---------- */
 .hidden { display: none !important; }
 .modal {

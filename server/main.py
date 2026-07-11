@@ -21,14 +21,29 @@ WEBAPP_DIR = os.path.join(os.path.dirname(__file__), "..", "webapp")
 
 # ------------------------------------------------------------------ auth
 
+BOT_USERNAME = os.environ.get("BOT_USERNAME", "")
+
+
 def current_user(x_init_data: str = Header(default="")) -> dict:
     tg_user = validate_init_data(x_init_data)
     if tg_user is None:
         raise HTTPException(401, "Невалидные данные Telegram")
-    return db.get_or_create_user(
+    is_new = not db.user_exists(tg_user["id"])
+    user = db.get_or_create_user(
         tg_user["id"], tg_user.get("username", ""), tg_user.get("first_name", ""),
         tg_user.get("photo_url", ""),
     )
+    if is_new:
+        start_param = tg_user.get("_start_param", "")
+        if start_param.startswith("ref"):
+            try:
+                ref_id = int(start_param.removeprefix("ref").lstrip("_"))
+            except ValueError:
+                ref_id = 0
+            if ref_id and db.set_referrer(user["id"], ref_id):
+                db.credit(user["id"], db.REF_BONUS_FRIEND)
+                db.credit(ref_id, db.REF_BONUS_INVITER)
+    return user
 
 
 def _seeds(user_id: int) -> dict:
@@ -376,6 +391,17 @@ def api_inventory_sell(body: SellBody, user: dict = Depends(current_user)):
 @app.get("/api/feed")
 def api_feed():
     return {"feed": db.get_feed()}
+
+
+@app.get("/api/referral")
+def api_referral(user: dict = Depends(current_user)):
+    stats = db.referral_stats(user["id"])
+    stats["link"] = (
+        f"https://t.me/{BOT_USERNAME}?startapp=ref_{user['id']}" if BOT_USERNAME else ""
+    )
+    stats["bonus_friend"] = db.REF_BONUS_FRIEND
+    stats["bonus_inviter"] = db.REF_BONUS_INVITER
+    return stats
 
 
 @app.get("/api/crash/history")
