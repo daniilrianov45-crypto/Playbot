@@ -1,5 +1,6 @@
-// Кейсы: рулетка-лента прокручивается к выигранному предмету.
+// Кейсы: лайв-лента, бесплатные кейсы с кулдауном, выигрыш падает в инвентарь.
 const Cases = (() => {
+  const feedEl = document.getElementById("live-feed");
   const listEl = document.getElementById("cases-list");
   const openingEl = document.getElementById("case-opening");
   const stripEl = document.getElementById("case-strip");
@@ -13,19 +14,44 @@ const Cases = (() => {
   let cases = [];
   let busy = false;
 
+  function fmtCooldown(sec) {
+    const h = Math.floor(sec / 3600), m = Math.ceil((sec % 3600) / 60);
+    return h > 0 ? `${h}ч ${m}м` : `${m}м`;
+  }
+
+  function renderFeed(feed) {
+    if (!feed || !feed.length) {
+      feedEl.innerHTML = `<div class="feed-item"><div class="f-emoji">✨</div>
+        <div class="f-name">Открой первый кейс!</div></div>`;
+      return;
+    }
+    feedEl.innerHTML = feed.map((f) =>
+      `<div class="feed-item"><div class="f-emoji">${f.emoji}</div>
+       <div><div class="f-name">${f.name}</div>
+       <div class="f-value">${f.value.toLocaleString("ru-RU")} 🪙</div></div></div>`
+    ).join("");
+  }
+
+  async function refreshFeed() {
+    try { renderFeed((await API.call("feed")).feed); } catch (e) {}
+  }
+
   async function load() {
     const data = await API.call("cases");
     cases = data.cases;
     listEl.innerHTML = "";
     cases.forEach((c) => {
       const card = document.createElement("div");
-      card.className = "case-card";
-      const preview = c.items.map((it) => it.emoji).join(" ");
+      const locked = c.cooldown_left > 0;
+      card.className = "case-card" + (locked ? " locked" : "");
+      const priceHtml = c.price > 0
+        ? `${c.price.toLocaleString("ru-RU")} 🪙`
+        : (locked ? `⏳ ${fmtCooldown(c.cooldown_left)}` : `<span class="free">Бесплатно</span>`);
       card.innerHTML =
         `<div class="icon">${c.emoji}</div>
          <div class="info"><div class="title">${c.title}</div>
-         <div class="items">${preview}</div></div>
-         <div class="price">${c.price.toLocaleString("ru-RU")} 🪙</div>`;
+         <div class="items">${c.items.map((it) => it.emoji).join(" ")}</div></div>
+         <div class="price ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
       card.addEventListener("click", () => open(c));
       listEl.appendChild(card);
     });
@@ -40,7 +66,8 @@ const Cases = (() => {
 
   async function open(c) {
     if (busy) return;
-    if (getBalance() < c.price) { toast("Недостаточно монет", "lose"); return; }
+    if (c.cooldown_left > 0) { toast(`Доступен через ${fmtCooldown(c.cooldown_left)}`); return; }
+    if (c.price > getBalance()) { toast("Недостаточно монет", "lose"); return; }
     busy = true;
 
     let data;
@@ -49,6 +76,7 @@ const Cases = (() => {
     } catch (e) { toast(e.message, "lose"); busy = false; return; }
 
     listEl.classList.add("hidden");
+    feedEl.classList.add("hidden");
     openingEl.classList.remove("hidden");
     backBtn.disabled = true;
     resultEl.textContent = "";
@@ -77,20 +105,23 @@ const Cases = (() => {
     setTimeout(() => {
       setBalance(data.balance);
       const it = data.item;
-      const profit = it.value - c.price;
       resultEl.innerHTML =
-        `${it.emoji} <b>${it.name}</b> — <span class="value">${it.value.toLocaleString("ru-RU")} 🪙</span>` +
-        (profit > 0 ? ` <span style="color:var(--green)">(+${profit.toLocaleString("ru-RU")})</span>` : "");
-      haptic(it.value >= c.price ? "success" : "warning");
+        `${it.emoji} <b>${it.name}</b> — <span class="value">${it.value.toLocaleString("ru-RU")} 🪙</span><br>
+         <span style="font-size:13px;color:var(--muted)">Подарок добавлен в инвентарь 🎒</span>`;
+      haptic("success");
       backBtn.disabled = false;
       busy = false;
+      Profile.load();
+      refreshFeed();
+      load();  // обновить кулдауны
     }, 3400);
   }
 
   backBtn.addEventListener("click", () => {
     openingEl.classList.add("hidden");
     listEl.classList.remove("hidden");
+    feedEl.classList.remove("hidden");
   });
 
-  return { load };
+  return { load, renderFeed };
 })();

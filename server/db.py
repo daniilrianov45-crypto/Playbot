@@ -20,8 +20,24 @@ CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY,
     username TEXT,
     first_name TEXT,
+    photo_url TEXT DEFAULT '',
     balance INTEGER NOT NULL,
     created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS inventory(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    value INTEGER NOT NULL,
+    case_id TEXT NOT NULL,
+    created_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS case_opens(
+    user_id INTEGER NOT NULL,
+    case_id TEXT NOT NULL,
+    last_open INTEGER NOT NULL,
+    PRIMARY KEY(user_id, case_id)
 );
 CREATE TABLE IF NOT EXISTS seeds(
     user_id INTEGER PRIMARY KEY,
@@ -55,20 +71,29 @@ CREATE TABLE IF NOT EXISTS history(
 """
 with _lock:
     _conn.executescript(_SCHEMA)
+    try:  # миграция старых баз без photo_url
+        _conn.execute("ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
     _conn.commit()
 
 
-def get_or_create_user(user_id: int, username: str, first_name: str) -> dict:
+def get_or_create_user(user_id: int, username: str, first_name: str, photo_url: str = "") -> dict:
     with _lock:
         row = _conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
         if row is None:
             _conn.execute(
-                "INSERT INTO users(id, username, first_name, balance, created_at) VALUES(?,?,?,?,?)",
-                (user_id, username, first_name, START_BALANCE, int(time.time())),
+                "INSERT INTO users(id, username, first_name, photo_url, balance, created_at)"
+                " VALUES(?,?,?,?,?,?)",
+                (user_id, username, first_name, photo_url, START_BALANCE, int(time.time())),
             )
-            _conn.commit()
-            row = _conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone()
-        return dict(row)
+        else:
+            _conn.execute(  # имя/фото в Telegram могли поменяться
+                "UPDATE users SET username=?, first_name=?, photo_url=? WHERE id=?",
+                (username, first_name, photo_url or row["photo_url"], user_id),
+            )
+        _conn.commit()
+        return dict(_conn.execute("SELECT * FROM users WHERE id=?", (user_id,)).fetchone())
 
 
 def get_balance(user_id: int) -> int:
@@ -166,3 +191,96 @@ def add_history(user_id: int, game: str, bet: int, payout: int, detail: dict) ->
             (user_id, game, bet, payout, json.dumps(detail), int(time.time())),
         )
         _conn.commit()
+
+
+def crash_history(user_id: int, limit: int = 10) -> list[float]:
+    """Точки взрыва последних раундов краша пользователя (новые первыми)."""
+    with _lock:
+        rows = _conn.execute(
+            "SELECT detail FROM history WHERE user_id=? AND game='crash'"
+            " ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+        return [json.loads(r["detail"])["point"] for r in rows]
+
+
+# ------------------------------------------------------------- инвентарь
+
+def add_inventory_item(user_id: int, item: dict, case_id: str) -> int:
+    with _lock:
+        cur = _conn.execute(
+            "INSERT INTO inventory(user_id, name, emoji, value, case_id, created_at)"
+            " VALUES(?,?,?,?,?,?)",
+            (user_id, item["name"], item["emoji"], item["value"], case_id, int(time.time())),
+        )
+        _conn.commit()
+        return cur.lastrowid
+
+
+def get_inventory(user_id: int) -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT id, name, emoji, value, case_id, created_at FROM inventory"
+            " WHERE user_id=? ORDER BY id DESC",
+            (user_id,),
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def sell_inventory_item(user_id: int, item_id: int) -> int | None:
+    """Удаляет предмет и зачисляет его стоимость; None, если предмета нет."""
+    with _lock:
+        row = _conn.execute(
+            "SELECT value FROM inventory WHERE id=? AND user_id=?", (item_id, user_id)
+        ).fetchone()
+        if row is None:
+            return None
+        _conn.execute("DELETE FROM inventory WHERE id=?", (item_id,))
+        _conn.execute(
+            "UPDATE users SET balance = balance + ? WHERE id=?", (row["value"], user_id)
+        )
+        _conn.commit()
+        return row["value"]
+
+
+# ------------------------------------------------------------- кулдауны кейсов
+
+def case_last_open(user_id: int, case_id: str) -> int:
+    with _lock:
+        row = _conn.execute(
+            "SELECT last_open FROM case_opens WHERE user_id=? AND case_id=?",
+            (user_id, case_id),
+        ).fetchone()
+        return row["last_open"] if row else 0
+
+
+def case_mark_open(user_id: int, case_id: str) -> None:
+    with _lock:
+        _conn.execute(
+            "INSERT OR REPLACE INTO case_opens(user_id, case_id, last_open) VALUES(?,?,?)",
+            (user_id, case_id, int(time.time())),
+        )
+        _conn.commit()
+
+
+# ------------------------------------------------------------- лайв-лента
+
+def get_feed(limit: int = 10) -> list[dict]:
+    """Последние выигрыши из кейсов по всем игрокам."""
+    with _lock:
+        rows = _conn.execute(
+            "SELECT h.detail, u.first_name, u.username FROM history h"
+            " JOIN users u ON u.id = h.user_id"
+            " WHERE h.game='case' ORDER BY h.id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    out = []
+    for r in rows:
+        d = json.loads(r["detail"])
+        out.append({
+            "name": r["first_name"] or r["username"] or "Игрок",
+            "item": d.get("item", ""),
+            "emoji": d.get("emoji", "🎁"),
+            "value": d.get("value", 0),
+        })
+    return out

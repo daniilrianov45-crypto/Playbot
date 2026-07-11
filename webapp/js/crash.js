@@ -10,6 +10,20 @@ const Crash = (() => {
   let startTime = 0;   // локальное время старта (мс)
   let animFrame = 0;
   let pollTimer = 0;
+  let history = [];    // точки взрыва прошлых раундов
+
+  const historyEl = document.getElementById("crash-history");
+  function renderHistory() {
+    historyEl.innerHTML = history
+      .map((p) => `<div class="h-chip${p >= 2 ? " big" : ""}">${p.toFixed(2)}×</div>`)
+      .join("");
+  }
+  function setHistory(points) { history = points; renderHistory(); }
+  function pushHistory(point) {
+    history.unshift(point);
+    history = history.slice(0, 10);
+    renderHistory();
+  }
 
   function multAt(sec) {
     return Math.floor(Math.exp(CONFIG.crash_growth * sec) * 100) / 100;
@@ -56,6 +70,7 @@ const Crash = (() => {
     cancelAnimationFrame(animFrame);
     clearTimeout(pollTimer);
     setBalance(result.balance);
+    pushHistory(result.crash_point);
     if (wonMult) {
       multEl.textContent = wonMult.toFixed(2) + "×";
       multEl.className = "crash-mult flying";
@@ -125,5 +140,5 @@ const Crash = (() => {
 
   btn.addEventListener("click", onButton);
   bindQuickButtons(document.querySelector("#screen-crash .panel"), betInput);
-  return { resume };
+  return { resume, setHistory };
 })();

@@ -84,6 +84,34 @@ def mines_multiplier(mines_count: int, revealed: int) -> float:
 # ---------------------------------------------------------------- кейсы
 
 CASES = {
+    "free": {
+        "title": "Бесплатный",
+        "emoji": "🎉",
+        "price": 0,
+        "cooldown": 4 * 3600,  # раз в 4 часа
+        "items": [
+            {"name": "Клевер", "emoji": "🍀", "value": 5, "weight": 30},
+            {"name": "Конфета", "emoji": "🍬", "value": 10, "weight": 25},
+            {"name": "Печенье", "emoji": "🍪", "value": 20, "weight": 20},
+            {"name": "Роза", "emoji": "🌹", "value": 40, "weight": 15},
+            {"name": "Сердце", "emoji": "❤️", "value": 60, "weight": 8},
+            {"name": "Ракета", "emoji": "🚀", "value": 150, "weight": 2},
+        ],
+    },
+    "daily": {
+        "title": "Ежедневный",
+        "emoji": "📅",
+        "price": 0,
+        "cooldown": 24 * 3600,
+        "items": [
+            {"name": "Мишка", "emoji": "🧸", "value": 50, "weight": 30},
+            {"name": "Торт", "emoji": "🎂", "value": 100, "weight": 25},
+            {"name": "Подарок", "emoji": "🎁", "value": 150, "weight": 20},
+            {"name": "Ракета", "emoji": "🚀", "value": 300, "weight": 15},
+            {"name": "Алмаз", "emoji": "💎", "value": 600, "weight": 8},
+            {"name": "Корона", "emoji": "👑", "value": 1500, "weight": 2},
+        ],
+    },
     "bronze": {
         "title": "Бронзовый",
         "emoji": "📦",

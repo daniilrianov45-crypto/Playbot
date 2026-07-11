@@ -26,7 +26,8 @@ def current_user(x_init_data: str = Header(default="")) -> dict:
     if tg_user is None:
         raise HTTPException(401, "Невалидные данные Telegram")
     return db.get_or_create_user(
-        tg_user["id"], tg_user.get("username", ""), tg_user.get("first_name", "")
+        tg_user["id"], tg_user.get("username", ""), tg_user.get("first_name", ""),
+        tg_user.get("photo_url", ""),
     )
 
 
@@ -57,8 +58,15 @@ class BetBody(BaseModel):
 def api_init(user: dict = Depends(current_user)):
     seeds = _seeds(user["id"])
     return {
-        "user": {"id": user["id"], "name": user["first_name"] or user["username"]},
+        "user": {
+            "id": user["id"],
+            "name": user["first_name"] or user["username"],
+            "username": user["username"],
+            "photo_url": user["photo_url"],
+        },
         "balance": db.get_balance(user["id"]),
+        "crash_history": db.crash_history(user["id"]),
+        "feed": db.get_feed(),
         "fair": {
             "server_seed_hash": fair.seed_hash(seeds["server_seed"]),
             "client_seed": seeds["client_seed"],
@@ -303,12 +311,22 @@ class CaseOpenBody(BaseModel):
     case_id: str
 
 
+def _case_cooldown_left(user_id: int, case_id: str, case: dict) -> int:
+    cooldown = case.get("cooldown", 0)
+    if not cooldown:
+        return 0
+    left = db.case_last_open(user_id, case_id) + cooldown - int(time.time())
+    return max(0, left)
+
+
 @app.get("/api/cases")
-def api_cases():
+def api_cases(user: dict = Depends(current_user)):
     return {
         "cases": [
             {"id": cid, "title": c["title"], "emoji": c["emoji"],
-             "price": c["price"], "items": c["items"]}
+             "price": c["price"], "cooldown": c.get("cooldown", 0),
+             "cooldown_left": _case_cooldown_left(user["id"], cid, c),
+             "items": c["items"]}
             for cid, c in games.CASES.items()
         ]
     }
@@ -319,14 +337,50 @@ def api_cases_open(body: CaseOpenBody, user: dict = Depends(current_user)):
     case = games.CASES.get(body.case_id)
     if case is None:
         raise HTTPException(400, "Нет такого кейса")
-    if not db.try_debit(user["id"], case["price"]):
+    left = _case_cooldown_left(user["id"], body.case_id, case)
+    if left > 0:
+        raise HTTPException(400, f"Кейс будет доступен через {left // 3600}ч {left % 3600 // 60}м")
+    if case["price"] and not db.try_debit(user["id"], case["price"]):
         raise HTTPException(400, "Недостаточно монет")
+    if case.get("cooldown"):
+        db.case_mark_open(user["id"], body.case_id)
     rolls, nonce = _roll(user["id"], 1)
     item = games.case_open(body.case_id, rolls[0])
-    balance = db.credit(user["id"], item["value"])
+    item_id = db.add_inventory_item(user["id"], item, body.case_id)
     db.add_history(user["id"], "case", case["price"], item["value"],
-                   {"case": body.case_id, "item": item["name"], "nonce": nonce})
-    return {"item": item, "nonce": nonce, "balance": balance}
+                   {"case": body.case_id, "item": item["name"], "emoji": item["emoji"],
+                    "value": item["value"], "nonce": nonce})
+    return {"item": item, "item_id": item_id, "nonce": nonce,
+            "balance": db.get_balance(user["id"])}
+
+
+# ------------------------------------------------------------------ инвентарь и лента
+
+class SellBody(BaseModel):
+    item_id: int
+
+
+@app.get("/api/inventory")
+def api_inventory(user: dict = Depends(current_user)):
+    return {"items": db.get_inventory(user["id"])}
+
+
+@app.post("/api/inventory/sell")
+def api_inventory_sell(body: SellBody, user: dict = Depends(current_user)):
+    value = db.sell_inventory_item(user["id"], body.item_id)
+    if value is None:
+        raise HTTPException(400, "Предмет не найден")
+    return {"sold": value, "balance": db.get_balance(user["id"])}
+
+
+@app.get("/api/feed")
+def api_feed():
+    return {"feed": db.get_feed()}
+
+
+@app.get("/api/crash/history")
+def api_crash_history(user: dict = Depends(current_user)):
+    return {"history": db.crash_history(user["id"])}
 
 
 # ------------------------------------------------------------------ статика

@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div class="stars" aria-hidden="true"></div>
 
 <header>
   <div class="logo">🚀 PlayBot</div>
@@ -25,6 +26,7 @@
       <div class="rocket" id="rocket">🚀</div>
       <div class="crash-hint" id="crash-hint">Сделай ставку и запусти ракету</div>
     </div>
+    <div class="crash-history" id="crash-history"></div>
     <div class="panel">
       <div class="bet-row">
         <label>Ставка</label>
@@ -87,11 +89,28 @@
 
   <!-- ============================== КЕЙСЫ -->
   <section id="screen-cases" class="screen">
+    <div class="live-feed" id="live-feed"></div>
     <div id="cases-list" class="cases-list"></div>
     <div id="case-opening" class="case-opening hidden">
       <div class="strip-window"><div class="strip-pointer"></div><div class="strip" id="case-strip"></div></div>
       <div class="case-result" id="case-result"></div>
       <button id="case-back" class="big-btn secondary">← К кейсам</button>
+    </div>
+  </section>
+
+  <!-- ============================== ПРОФИЛЬ -->
+  <section id="screen-profile" class="screen">
+    <div class="profile-head">
+      <div class="avatar" id="profile-avatar"></div>
+      <div class="profile-name" id="profile-name">…</div>
+      <div class="profile-username" id="profile-username"></div>
+    </div>
+    <h3 class="inv-title">Ваш инвентарь</h3>
+    <div id="inventory-list" class="inventory-list"></div>
+    <div id="inventory-empty" class="inventory-empty hidden">
+      <div class="inv-emoji">🧸</div>
+      <div>Пока пусто</div>
+      <div class="inv-sub">Открой кейс — подарок появится здесь</div>
     </div>
   </section>
 </main>
@@ -101,6 +120,7 @@
   <button class="nav-btn" data-screen="slots">🎰<span>Слоты</span></button>
   <button class="nav-btn" data-screen="mines">💣<span>Мины</span></button>
   <button class="nav-btn" data-screen="cases">🎁<span>Кейсы</span></button>
+  <button class="nav-btn" data-screen="profile">👤<span>Профиль</span></button>
 </nav>
 
 <!-- модалка честной игры -->
@@ -129,6 +149,7 @@
 <script src="js/slots.js"></script>
 <script src="js/mines.js"></script>
 <script src="js/cases.js"></script>
+<script src="js/profile.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

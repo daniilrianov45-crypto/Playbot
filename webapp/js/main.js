@@ -40,9 +40,13 @@
       setBalance(data.balance);
       setFair(data.fair);
       Object.assign(CONFIG, data.config);
+      Profile.setUser(data.user);
+      Crash.setHistory(data.crash_history || []);
+      Cases.renderFeed(data.feed || []);
       Crash.resume();
       Mines.resume();
       Cases.load();
+      Profile.load();
     } catch (e) {
       toast("Не удалось подключиться: " + e.message, "lose");
     }

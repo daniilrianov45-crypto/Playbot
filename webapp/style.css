@@ -1,16 +1,30 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #0e1621;
-  --card: #17212b;
-  --card2: #1e2c3a;
-  --accent: #5eb5f7;
+  --bg: #05070d;
+  --card: #10141f;
+  --card2: #1a2030;
+  --accent: #2f8af5;
   --green: #4cd964;
   --red: #ff5c5c;
   --gold: #ffd24d;
   --text: #eef3f8;
   --muted: #7d8b99;
 }
+
+/* звёздное небо на весь фон */
+.stars, .stars::after {
+  content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    radial-gradient(1px 1px at 20% 30%, #fff8, transparent),
+    radial-gradient(1px 1px at 70% 15%, #fff6, transparent),
+    radial-gradient(2px 2px at 40% 70%, #fff5, transparent),
+    radial-gradient(1px 1px at 85% 60%, #fff7, transparent),
+    radial-gradient(1px 1px at 10% 85%, #fff4, transparent),
+    radial-gradient(2px 2px at 60% 45%, #fff3, transparent);
+}
+.stars::after { transform: scale(1.7) rotate(45deg); opacity: .6; }
+header, main, nav { position: relative; z-index: 1; }
 
 html, body { height: 100%; }
 body {
@@ -96,6 +110,17 @@ nav {
   position: absolute; bottom: 12px; width: 100%; text-align: center;
   color: var(--muted); font-size: 13px;
 }
+.crash-history {
+  display: flex; gap: 6px; overflow-x: auto; padding: 2px;
+  scrollbar-width: none;
+}
+.crash-history::-webkit-scrollbar { display: none; }
+.crash-history .h-chip {
+  flex-shrink: 0; background: var(--card); border-radius: 10px;
+  padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.crash-history .h-chip.big { color: var(--green); }
 
 /* ---------- слоты ---------- */
 .slots-box {
@@ -136,7 +161,24 @@ nav {
 .cell.disabled { pointer-events: none; opacity: .85; }
 
 /* ---------- кейсы ---------- */
+.live-feed {
+  display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;
+  scrollbar-width: none; min-height: 58px;
+}
+.live-feed::-webkit-scrollbar { display: none; }
+.feed-item {
+  flex-shrink: 0; background: var(--card); border-radius: 12px;
+  padding: 6px 10px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 2px solid var(--accent);
+}
+.feed-item .f-emoji { font-size: 24px; }
+.feed-item .f-name { font-size: 11px; color: var(--muted); max-width: 70px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed-item .f-value { font-size: 12px; font-weight: 700; color: var(--gold); }
+
 .cases-list { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+.case-card.locked { opacity: .55; }
+.case-card .price.free { color: var(--green); }
 .case-card {
   background: var(--card); border-radius: 16px; padding: 14px;
   display: flex; align-items: center; gap: 12px; cursor: pointer;
@@ -160,6 +202,42 @@ nav {
 }
 .case-result { text-align: center; font-size: 18px; font-weight: 800; min-height: 48px; }
 .case-result .value { color: var(--gold); }
+
+/* ---------- профиль ---------- */
+.profile-head {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 18px 0 6px;
+}
+.avatar {
+  width: 88px; height: 88px; border-radius: 50%;
+  background: linear-gradient(135deg, #6a7bf7, #a56af7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px; font-weight: 800; color: #fff;
+  background-size: cover; background-position: center;
+  border: 2px solid var(--card2);
+}
+.profile-name { font-size: 20px; font-weight: 800; }
+.profile-username { color: var(--muted); font-size: 13px; }
+.inv-title { font-size: 16px; padding: 8px 2px 0; }
+.inventory-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.inv-item {
+  background: var(--card); border-radius: 14px; padding: 10px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.inv-item .i-emoji { font-size: 34px; }
+.inv-item .i-name { font-size: 12px; font-weight: 700; }
+.inv-item .i-value { font-size: 12px; color: var(--gold); font-weight: 700; }
+.inv-item button {
+  background: var(--card2); border: none; color: var(--text);
+  border-radius: 8px; padding: 5px 10px; font-size: 12px; font-weight: 700;
+  cursor: pointer; margin-top: 2px;
+}
+.inventory-empty {
+  text-align: center; color: var(--muted); padding: 28px 0;
+  font-weight: 700;
+}
+.inventory-empty .inv-emoji { font-size: 52px; margin-bottom: 8px; }
+.inventory-empty .inv-sub { font-weight: 400; font-size: 13px; margin-top: 4px; }
 
 /* ---------- модалка/тост ---------- */
 .hidden { display: none !important; }
