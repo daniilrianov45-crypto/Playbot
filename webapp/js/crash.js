@@ -3,6 +3,7 @@
 // Клиент опрашивает состояние и плавно анимирует множитель между опросами.
 const Crash = (() => {
   const multEl = document.getElementById("crash-mult");
+  const rocketEl = document.getElementById("rocket");
   const hintEl = document.getElementById("crash-hint");
   const historyEl = document.getElementById("crash-history");
   const betsEl = document.getElementById("crash-bets");
@@ -71,22 +72,38 @@ const Crash = (() => {
     }
   }
 
+  function setRocket(cls, emoji, transform) {
+    if (!rocketEl.className.endsWith(cls)) rocketEl.className = "rocket " + cls;
+    const span = rocketEl.firstElementChild;
+    if (span.textContent !== emoji) span.textContent = emoji;
+    rocketEl.style.transform = transform || "";
+  }
+
   function draw() {
     if (state?.phase === "flying") {
       const m = multAt((Date.now() - flyStart) / 1000);
       multEl.textContent = m.toFixed(2);
       multEl.className = "crash-mult flying";
       hintEl.textContent = "";
+      // ракета набирает высоту вместе с множителем
+      const progress = Math.min(1, Math.log(m) / Math.log(15));
+      setRocket("fly", "🚀",
+        `translate(${progress * 260}%, ${-progress * 320}%) rotate(-45deg)`);
       if (state.my && state.my.status === "waiting") renderButton();
     } else if (state?.phase === "waiting") {
       const left = Math.max(0, (waitEnd - Date.now()) / 1000);
       multEl.textContent = left.toFixed(1) + "с";
       multEl.className = "crash-mult waiting";
       hintEl.textContent = "Приём ставок";
+      setRocket("idle", "🚀", "");
     } else if (state?.phase === "crashed") {
       multEl.textContent = state.point.toFixed(2);
       multEl.className = "crash-mult boom";
       hintEl.textContent = "💥 Взрыв!";
+      // взрыв там, где ракету застал крах
+      const progress = Math.min(1, Math.log(state.point) / Math.log(15));
+      setRocket("boom", "💥",
+        `translate(${progress * 260}%, ${-progress * 320}%) rotate(-45deg)`);
     }
     animFrame = requestAnimationFrame(draw);
   }

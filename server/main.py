@@ -452,11 +452,16 @@ def api_cases_open(body: CaseOpenBody, user: dict = Depends(current_user)):
         db.case_mark_open(user["id"], body.case_id)
     rolls, nonce = _roll(user["id"], 1)
     item = games.case_open(body.case_id, rolls[0])
-    item_id = db.add_inventory_item(user["id"], item, body.case_id)
+    coins = bool(case.get("coins"))
+    if coins:  # валютный кейс: сразу на баланс, минуя инвентарь
+        db.credit(user["id"], item["value"])
+        item_id = None
+    else:
+        item_id = db.add_inventory_item(user["id"], item, body.case_id)
     db.add_history(user["id"], "case", case["price"], item["value"],
                    {"case": body.case_id, "item": item["name"], "emoji": item["emoji"],
                     "value": item["value"], "nonce": nonce})
-    return {"item": item, "item_id": item_id, "nonce": nonce,
+    return {"item": item, "item_id": item_id, "coins": coins, "nonce": nonce,
             "balance": db.get_balance(user["id"])}
 
 

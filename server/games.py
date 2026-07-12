@@ -90,13 +90,14 @@ CASES = {
         "glow": "#4cd964",
         "price": 0,
         "cooldown": 4 * 3600,  # раз в 4 часа
+        "coins": True,  # только валюта, сразу на баланс
         "items": [
-            {"name": "Клевер", "emoji": "🍀", "value": 5, "weight": 30},
-            {"name": "Конфета", "emoji": "🍬", "value": 10, "weight": 25},
-            {"name": "Печенье", "emoji": "🍪", "value": 20, "weight": 20},
-            {"name": "Роза", "emoji": "🌹", "value": 40, "weight": 15},
-            {"name": "Сердце", "emoji": "❤️", "value": 60, "weight": 8},
-            {"name": "Ракета", "emoji": "🚀", "value": 150, "weight": 2},
+            {"name": "5 монет", "emoji": "🪙", "value": 5, "weight": 30},
+            {"name": "10 монет", "emoji": "🪙", "value": 10, "weight": 25},
+            {"name": "20 монет", "emoji": "🪙", "value": 20, "weight": 20},
+            {"name": "40 монет", "emoji": "💰", "value": 40, "weight": 15},
+            {"name": "60 монет", "emoji": "💰", "value": 60, "weight": 8},
+            {"name": "150 монет", "emoji": "💎", "value": 150, "weight": 2},
         ],
     },
     "daily": {
@@ -105,13 +106,14 @@ CASES = {
         "glow": "#ffd24d",
         "price": 0,
         "cooldown": 24 * 3600,
+        "coins": True,
         "items": [
-            {"name": "Мишка", "emoji": "🧸", "value": 50, "weight": 30},
-            {"name": "Торт", "emoji": "🎂", "value": 100, "weight": 25},
-            {"name": "Подарок", "emoji": "🎁", "value": 150, "weight": 20},
-            {"name": "Ракета", "emoji": "🚀", "value": 300, "weight": 15},
-            {"name": "Алмаз", "emoji": "💎", "value": 600, "weight": 8},
-            {"name": "Корона", "emoji": "👑", "value": 1500, "weight": 2},
+            {"name": "50 монет", "emoji": "🪙", "value": 50, "weight": 30},
+            {"name": "100 монет", "emoji": "🪙", "value": 100, "weight": 25},
+            {"name": "150 монет", "emoji": "💰", "value": 150, "weight": 20},
+            {"name": "300 монет", "emoji": "💰", "value": 300, "weight": 15},
+            {"name": "600 монет", "emoji": "💎", "value": 600, "weight": 8},
+            {"name": "1500 монет", "emoji": "👑", "value": 1500, "weight": 2},
         ],
     },
     "stardust": {

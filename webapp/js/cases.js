@@ -105,9 +105,12 @@ const Cases = (() => {
     setTimeout(() => {
       setBalance(data.balance);
       const it = data.item;
+      const note = data.coins
+        ? "Монеты зачислены на баланс ✅"
+        : "Подарок добавлен в инвентарь 🎒";
       resultEl.innerHTML =
         `${it.emoji} <b>${it.name}</b> — <span class="value">${it.value.toLocaleString("ru-RU")} 🪙</span><br>
-         <span style="font-size:13px;color:var(--muted)">Подарок добавлен в инвентарь 🎒</span>`;
+         <span style="font-size:13px;color:var(--muted)">${note}</span>`;
       haptic("success");
       backBtn.disabled = false;
       busy = false;

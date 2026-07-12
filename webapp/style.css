@@ -242,11 +242,30 @@ nav {
 .crash-mult.flying { color: var(--green); }
 .crash-mult.boom { color: var(--red); }
 .rocket {
-  position: absolute; left: 12%; bottom: 8%; font-size: 44px; z-index: 1;
-  transition: transform .3s linear; transform: rotate(-45deg);
+  position: absolute; left: 10%; bottom: 8%; font-size: 44px; z-index: 1;
+  transform: rotate(-45deg);
 }
-.rocket.boom { animation: shake .4s; }
-@keyframes shake { 25%{transform:translateX(-6px) rotate(-45deg)} 75%{transform:translateX(6px) rotate(-45deg)} }
+.rocket.idle { animation: bob 2.2s ease-in-out infinite; }
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-45deg); }
+  50% { transform: translateY(-8px) rotate(-45deg); }
+}
+.rocket.fly::after {  /* выхлоп */
+  content: "🔥"; position: absolute; left: -14px; bottom: -16px;
+  font-size: 22px; transform: rotate(135deg);
+  animation: flame .18s ease-in-out infinite alternate;
+}
+@keyframes flame { from { opacity: .5; scale: .8; } to { opacity: 1; scale: 1.15; } }
+.rocket span { display: inline-block; }
+.rocket.boom span { animation: boomPulse .55s ease-out; }
+@keyframes boomPulse {
+  0% { transform: scale(.3); opacity: .3; }
+  55% { transform: scale(1.7); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rocket.idle, .rocket.fly::after, .rocket.boom span { animation: none; }
+}
 .crash-hint {
   position: absolute; bottom: 12px; width: 100%; text-align: center;
   color: var(--muted); font-size: 13px;
