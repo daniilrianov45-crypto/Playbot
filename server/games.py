@@ -87,6 +87,7 @@ CASES = {
     "free": {
         "title": "Бесплатный",
         "emoji": "🎉",
+        "glow": "#4cd964",
         "price": 0,
         "cooldown": 4 * 3600,  # раз в 4 часа
         "items": [
@@ -101,6 +102,7 @@ CASES = {
     "daily": {
         "title": "Ежедневный",
         "emoji": "📅",
+        "glow": "#ffd24d",
         "price": 0,
         "cooldown": 24 * 3600,
         "items": [
@@ -112,47 +114,92 @@ CASES = {
             {"name": "Корона", "emoji": "👑", "value": 1500, "weight": 2},
         ],
     },
-    "bronze": {
-        "title": "Бронзовый",
-        "emoji": "📦",
-        "price": 100,
+    "stardust": {
+        "title": "Звёздная пыль",
+        "emoji": "✨",
+        "glow": "#8ab6ff",
+        "price": 150,
         "items": [
-            {"name": "Мишка", "emoji": "🧸", "value": 25, "weight": 35},
-            {"name": "Роза", "emoji": "🌹", "value": 50, "weight": 25},
-            {"name": "Сердце", "emoji": "❤️", "value": 100, "weight": 20},
-            {"name": "Торт", "emoji": "🎂", "value": 150, "weight": 12},
-            {"name": "Ракета", "emoji": "🚀", "value": 300, "weight": 6},
-            {"name": "Кольцо", "emoji": "💍", "value": 500, "weight": 2},
+            {"name": "Звёздочка", "emoji": "🌟", "value": 30, "weight": 30},
+            {"name": "Леденец", "emoji": "🍭", "value": 60, "weight": 25},
+            {"name": "Шарик", "emoji": "🎈", "value": 100, "weight": 18},
+            {"name": "Капкейк", "emoji": "🧁", "value": 180, "weight": 14},
+            {"name": "Тарелка", "emoji": "🛸", "value": 400, "weight": 10},
+            {"name": "Комета", "emoji": "💫", "value": 1200, "weight": 3},
         ],
     },
-    "silver": {
-        "title": "Серебряный",
-        "emoji": "🎁",
+    "duck": {
+        "title": "Утиный бунт",
+        "emoji": "🦆",
+        "glow": "#ffe066",
+        "price": 300,
+        "items": [
+            {"name": "Носки", "emoji": "🧦", "value": 50, "weight": 32},
+            {"name": "Утка", "emoji": "🦆", "value": 150, "weight": 26},
+            {"name": "Сочок", "emoji": "🧃", "value": 250, "weight": 18},
+            {"name": "Диско-шар", "emoji": "🪩", "value": 500, "weight": 14},
+            {"name": "Наушники", "emoji": "🎧", "value": 900, "weight": 8},
+            {"name": "Кроссы", "emoji": "👟", "value": 2000, "weight": 2},
+        ],
+    },
+    "robo": {
+        "title": "Робо-бокс",
+        "emoji": "🤖",
+        "glow": "#7cf5ff",
         "price": 500,
         "items": [
-            {"name": "Мишка", "emoji": "🧸", "value": 100, "weight": 35},
-            {"name": "Сердце", "emoji": "❤️", "value": 250, "weight": 28},
-            {"name": "Подарок", "emoji": "🎁", "value": 500, "weight": 20},
-            {"name": "Ракета", "emoji": "🚀", "value": 1000, "weight": 12},
-            {"name": "Алмаз", "emoji": "💎", "value": 2000, "weight": 4},
-            {"name": "Корона", "emoji": "👑", "value": 5000, "weight": 1},
+            {"name": "Шестерёнка", "emoji": "⚙️", "value": 100, "weight": 33},
+            {"name": "Батарейка", "emoji": "🔋", "value": 200, "weight": 26},
+            {"name": "Джойстик", "emoji": "🕹", "value": 400, "weight": 18},
+            {"name": "Робот", "emoji": "🤖", "value": 800, "weight": 13},
+            {"name": "Дрон", "emoji": "🚁", "value": 1500, "weight": 8},
+            {"name": "Спутник", "emoji": "🛰", "value": 3000, "weight": 2},
         ],
     },
-    "gold": {
-        "title": "Золотой",
-        "emoji": "🏆",
+    "moon": {
+        "title": "Лунный лут",
+        "emoji": "🌙",
+        "glow": "#b39dff",
+        "price": 1000,
+        "items": [
+            {"name": "Новолуние", "emoji": "🌑", "value": 200, "weight": 33},
+            {"name": "Полумесяц", "emoji": "🌗", "value": 400, "weight": 25},
+            {"name": "Полнолуние", "emoji": "🌕", "value": 800, "weight": 18},
+            {"name": "Ракета", "emoji": "🚀", "value": 1500, "weight": 14},
+            {"name": "Космонавт", "emoji": "👨‍🚀", "value": 3000, "weight": 8},
+            {"name": "Галактика", "emoji": "🌌", "value": 6000, "weight": 2},
+        ],
+    },
+    "plasma": {
+        "title": "Плазма",
+        "emoji": "🔮",
+        "glow": "#c86bff",
         "price": 2000,
         "items": [
-            {"name": "Подарок", "emoji": "🎁", "value": 400, "weight": 34},
-            {"name": "Ракета", "emoji": "🚀", "value": 800, "weight": 28},
-            {"name": "Алмаз", "emoji": "💎", "value": 2000, "weight": 20},
-            {"name": "Спорткар", "emoji": "🏎", "value": 4000, "weight": 12},
-            {"name": "Корона", "emoji": "👑", "value": 8000, "weight": 5},
-            {"name": "Звезда", "emoji": "🌟", "value": 20000, "weight": 1},
+            {"name": "Кристалл", "emoji": "💠", "value": 400, "weight": 34},
+            {"name": "Молния", "emoji": "⚡", "value": 800, "weight": 25},
+            {"name": "Сфера", "emoji": "🔮", "value": 1600, "weight": 18},
+            {"name": "Оберег", "emoji": "🧿", "value": 3000, "weight": 13},
+            {"name": "Комета", "emoji": "☄️", "value": 6000, "weight": 7},
+            {"name": "Сверхновая", "emoji": "🌠", "value": 15000, "weight": 3},
+        ],
+    },
+    "blackhole": {
+        "title": "Чёрная дыра",
+        "emoji": "🕳",
+        "glow": "#ff6b6b",
+        "price": 5000,
+        "items": [
+            {"name": "Туман", "emoji": "🌫", "value": 1000, "weight": 34},
+            {"name": "Вихрь", "emoji": "🌪", "value": 2000, "weight": 25},
+            {"name": "Дыра", "emoji": "🕳", "value": 4000, "weight": 18},
+            {"name": "Планета", "emoji": "🪐", "value": 8000, "weight": 13},
+            {"name": "Портал", "emoji": "🌀", "value": 15000, "weight": 8},
+            {"name": "Большой взрыв", "emoji": "💥", "value": 40000, "weight": 2},
         ],
     },
 }
-# RTP кейсов: bronze ~87%, silver ~91%, gold ~92%
+# RTP платных кейсов ~88–95%
 
 
 def case_open(case_id: str, r: float) -> dict:

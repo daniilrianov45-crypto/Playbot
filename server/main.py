@@ -80,7 +80,7 @@ def api_init(user: dict = Depends(current_user)):
             "photo_url": user["photo_url"],
         },
         "balance": db.get_balance(user["id"]),
-        "crash_history": db.crash_history(user["id"]),
+        "crash_history": db.last_crash_points(10),
         "feed": db.get_feed(),
         "fair": {
             "server_seed_hash": fair.seed_hash(seeds["server_seed"]),
@@ -99,7 +99,7 @@ def api_init(user: dict = Depends(current_user)):
 @app.post("/api/fair/rotate")
 def api_fair_rotate(user: dict = Depends(current_user)):
     """Раскрывает текущий server seed и выдаёт новый."""
-    if db.get_active_game(user["id"], "crash") or db.get_active_game(user["id"], "mines"):
+    if db.get_active_game(user["id"], "mines"):
         raise HTTPException(400, "Завершите активные игры перед сменой сида")
     old = db.rotate_seed(user["id"], fair.new_server_seed(), fair.new_client_seed())
     seeds = _seeds(user["id"])
@@ -118,75 +118,165 @@ def api_fair_rotate(user: dict = Depends(current_user)):
     }
 
 
-# ------------------------------------------------------------------ краш
+# ------------------------------------------------------------------ краш (общий раунд)
+#
+# Один раунд для всех игроков: 5с приём ставок -> полёт -> взрыв -> 3с пауза.
+# Точка взрыва детерминирована глобальным сидом и номером раунда, поэтому
+# движок не требует фонового потока: состояние доводится до "сейчас"
+# при каждом запросе.
 
-@app.post("/api/crash/start")
-def api_crash_start(body: BetBody, user: dict = Depends(current_user)):
-    _check_bet(body.bet)
-    if db.get_active_game(user["id"], "crash"):
-        raise HTTPException(400, "Раунд уже идёт")
-    if not db.try_debit(user["id"], body.bet):
-        raise HTTPException(400, "Недостаточно монет")
-    rolls, nonce = _roll(user["id"], 1)
-    point = games.crash_point(rolls[0])
-    state = {"bet": body.bet, "point": point, "start": time.time(), "nonce": nonce}
-    db.set_active_game(user["id"], "crash", state)
-    return {"status": "active", "balance": db.get_balance(user["id"])}
+import threading
+
+CRASH_WAIT = 5.0    # окно приёма ставок, сек
+CRASH_PAUSE = 3.0   # пауза после взрыва, сек
+MIN_AUTO = 1.05
+
+CRASH_SEED = db.get_kv("crash_seed")
+if not CRASH_SEED:
+    CRASH_SEED = fair.new_server_seed()
+    db.set_kv("crash_seed", CRASH_SEED)
+
+_crash_lock = threading.Lock()
 
 
-def _crash_settle_if_crashed(user_id: int, state: dict) -> dict | None:
-    """Если время взрыва прошло — фиксирует проигрыш и возвращает итог."""
-    elapsed = time.time() - state["start"]
-    if elapsed >= games.crash_time_of(state["point"]):
-        db.clear_active_game(user_id, "crash")
-        db.add_history(user_id, "crash", state["bet"], 0,
-                       {"point": state["point"], "nonce": state["nonce"]})
-        return {
-            "status": "crashed",
-            "crash_point": state["point"],
-            "nonce": state["nonce"],
-            "balance": db.get_balance(user_id),
-        }
-    return None
+def _round_point(round_id: int) -> float:
+    return games.crash_point(fair.roll_floats(CRASH_SEED, "crash", round_id, 1)[0])
+
+
+_crash = {
+    "round_id": int(db.get_kv("crash_round", "0")) + 1,
+    "phase": "waiting",           # waiting | flying | crashed
+    "t": time.time(),             # время начала текущей фазы
+    "bets": {},                   # user_id -> {name, bet, auto, status, mult, payout}
+}
+_crash["point"] = _round_point(_crash["round_id"])
+
+
+def _settle_bet(uid: int, b: dict, mult: float | None) -> None:
+    """mult=None — проигрыш; иначе выплата bet*mult."""
+    if mult is None:
+        b["status"] = "lost"
+        db.add_history(uid, "crash", b["bet"], 0, {"round": _crash["round_id"]})
+    else:
+        b["status"] = "cashed"
+        b["mult"] = mult
+        b["payout"] = math.floor(b["bet"] * mult)
+        db.credit(uid, b["payout"])
+        db.add_history(uid, "crash", b["bet"], b["payout"],
+                       {"round": _crash["round_id"], "cashout": mult})
+
+
+def _crash_advance() -> dict:
+    """Доводит машину раундов до текущего момента; возвращает состояние."""
+    now = time.time()
+    with _crash_lock:
+        st = _crash
+        moved = True
+        while moved:
+            moved = False
+            if st["phase"] == "waiting" and now >= st["t"] + CRASH_WAIT:
+                st["phase"] = "flying"
+                st["t"] += CRASH_WAIT
+                moved = True
+            elif st["phase"] == "flying":
+                mult_now = games.crash_multiplier_at(max(0.0, now - st["t"]))
+                # авто-выводы, до которых долетели
+                for uid, b in st["bets"].items():
+                    if (b["status"] == "waiting" and b.get("auto")
+                            and b["auto"] <= mult_now and b["auto"] < st["point"]):
+                        _settle_bet(uid, b, b["auto"])
+                if now >= st["t"] + games.crash_time_of(st["point"]):
+                    # взрыв: авто ниже точки успели, остальные сгорели
+                    for uid, b in st["bets"].items():
+                        if b["status"] != "waiting":
+                            continue
+                        if b.get("auto") and b["auto"] < st["point"]:
+                            _settle_bet(uid, b, b["auto"])
+                        else:
+                            _settle_bet(uid, b, None)
+                    db.add_crash_round(st["round_id"], st["point"])
+                    db.set_kv("crash_round", str(st["round_id"]))
+                    st["phase"] = "crashed"
+                    st["t"] += games.crash_time_of(st["point"])
+                    moved = True
+            elif st["phase"] == "crashed" and now >= st["t"] + CRASH_PAUSE:
+                st["round_id"] += 1
+                st["point"] = _round_point(st["round_id"])
+                st["bets"] = {}
+                st["phase"] = "waiting"
+                st["t"] += CRASH_PAUSE
+                moved = True
+        return st
+
+
+def _crash_public_state(st: dict, user_id: int) -> dict:
+    now = time.time()
+    out = {
+        "phase": st["phase"],
+        "round_id": st["round_id"],
+        "history": db.last_crash_points(10),
+        "bets": [
+            {"name": b["name"], "bet": b["bet"], "status": b["status"],
+             "mult": b.get("mult")}
+            for b in st["bets"].values()
+        ],
+        "my": st["bets"].get(user_id),
+        "balance": db.get_balance(user_id),
+    }
+    if st["phase"] == "waiting":
+        out["until"] = max(0.0, st["t"] + CRASH_WAIT - now)
+    elif st["phase"] == "flying":
+        out["elapsed"] = now - st["t"]
+    else:
+        out["point"] = st["point"]
+    return out
+
+
+class CrashBetBody(BaseModel):
+    bet: int
+    auto: float | None = None
 
 
 @app.get("/api/crash/state")
 def api_crash_state(user: dict = Depends(current_user)):
-    state = db.get_active_game(user["id"], "crash")
-    if state is None:
-        return {"status": "none"}
-    crashed = _crash_settle_if_crashed(user["id"], state)
-    if crashed:
-        return crashed
-    return {
-        "status": "active",
-        "bet": state["bet"],
-        "elapsed": time.time() - state["start"],
-    }
+    return _crash_public_state(_crash_advance(), user["id"])
+
+
+@app.post("/api/crash/bet")
+def api_crash_bet(body: CrashBetBody, user: dict = Depends(current_user)):
+    _check_bet(body.bet)
+    if body.auto is not None and body.auto < MIN_AUTO:
+        raise HTTPException(400, f"Авто-вывод от ×{MIN_AUTO}")
+    st = _crash_advance()
+    with _crash_lock:
+        if st["phase"] != "waiting":
+            raise HTTPException(400, "Ставки принимаются между раундами")
+        if user["id"] in st["bets"]:
+            raise HTTPException(400, "Ставка уже сделана")
+        if not db.try_debit(user["id"], body.bet):
+            raise HTTPException(400, "Недостаточно монет")
+        st["bets"][user["id"]] = {
+            "name": user["first_name"] or user["username"] or "Игрок",
+            "bet": body.bet,
+            "auto": round(body.auto, 2) if body.auto else None,
+            "status": "waiting",
+        }
+    return _crash_public_state(st, user["id"])
 
 
 @app.post("/api/crash/cashout")
 def api_crash_cashout(user: dict = Depends(current_user)):
-    state = db.get_active_game(user["id"], "crash")
-    if state is None:
-        raise HTTPException(400, "Нет активного раунда")
-    crashed = _crash_settle_if_crashed(user["id"], state)
-    if crashed:
-        return crashed
-    mult = games.crash_multiplier_at(time.time() - state["start"])
-    payout = math.floor(state["bet"] * mult)
-    db.clear_active_game(user["id"], "crash")
-    balance = db.credit(user["id"], payout)
-    db.add_history(user["id"], "crash", state["bet"], payout,
-                   {"point": state["point"], "cashout": mult, "nonce": state["nonce"]})
-    return {
-        "status": "won",
-        "multiplier": mult,
-        "payout": payout,
-        "crash_point": state["point"],
-        "nonce": state["nonce"],
-        "balance": balance,
-    }
+    st = _crash_advance()
+    now = time.time()
+    with _crash_lock:
+        b = st["bets"].get(user["id"])
+        if st["phase"] != "flying" or b is None:
+            raise HTTPException(400, "Нет активной ставки в полёте")
+        if b["status"] != "waiting":
+            raise HTTPException(400, "Ставка уже выплачена")
+        mult = games.crash_multiplier_at(max(0.0, now - st["t"]))
+        _settle_bet(user["id"], b, mult)
+    return _crash_public_state(st, user["id"])
 
 
 # ------------------------------------------------------------------ слоты
@@ -339,6 +429,7 @@ def api_cases(user: dict = Depends(current_user)):
     return {
         "cases": [
             {"id": cid, "title": c["title"], "emoji": c["emoji"],
+             "glow": c.get("glow", "#5eb5f7"),
              "price": c["price"], "cooldown": c.get("cooldown", 0),
              "cooldown_left": _case_cooldown_left(user["id"], cid, c),
              "items": c["items"]}
@@ -466,7 +557,7 @@ def api_referral(user: dict = Depends(current_user)):
 
 @app.get("/api/crash/history")
 def api_crash_history(user: dict = Depends(current_user)):
-    return {"history": db.crash_history(user["id"])}
+    return {"history": db.last_crash_points(10)}
 
 
 # ------------------------------------------------------------------ статика

@@ -251,17 +251,45 @@ nav {
   position: absolute; bottom: 12px; width: 100%; text-align: center;
   color: var(--muted); font-size: 13px;
 }
+.crash-mult.waiting { color: var(--text); }
+.crash-mult { font-variant-numeric: tabular-nums; }
+.crash-hint { font-weight: 700; }
+
 .crash-history {
   display: flex; gap: 6px; overflow-x: auto; padding: 2px;
   scrollbar-width: none;
 }
 .crash-history::-webkit-scrollbar { display: none; }
 .crash-history .h-chip {
-  flex-shrink: 0; background: var(--card); border-radius: 10px;
-  padding: 6px 12px; font-size: 13px; font-weight: 700; color: var(--muted);
-  font-variant-numeric: tabular-nums;
+  flex-shrink: 0; background: var(--card); border-radius: 12px;
+  padding: 8px 14px; font-size: 13px; font-weight: 700; color: var(--muted);
+  font-variant-numeric: tabular-nums; border: 1px solid rgba(255,255,255,.06);
 }
 .crash-history .h-chip.big { color: var(--green); }
+.crash-history .h-chip.phase {
+  background: linear-gradient(160deg, rgba(80,155,255,.85), rgba(28,96,214,.55));
+  color: #fff; border-color: rgba(255,255,255,.3);
+}
+.crash-history .h-chip.phase.fly { background: linear-gradient(160deg, rgba(88,224,120,.85), rgba(30,150,70,.55)); }
+.crash-history .h-chip.phase.boom { background: linear-gradient(160deg, rgba(255,110,110,.85), rgba(190,40,40,.55)); }
+
+.auto-x { color: var(--muted); font-weight: 800; }
+.bets-panel { min-height: 120px; }
+.bets-title { font-size: 13px; color: var(--muted); font-weight: 700; }
+.bets-list { display: flex; flex-direction: column; gap: 6px; }
+.bets-empty { text-align: center; color: var(--muted); padding: 20px 0; font-weight: 700; }
+.bet-row-item {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card2); border-radius: 10px; padding: 8px 10px; font-size: 13px;
+}
+.bet-row-item .b-name {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-weight: 700;
+}
+.bet-row-item .b-amount { color: var(--muted); font-variant-numeric: tabular-nums; }
+.bet-row-item .b-wait { color: var(--accent); font-weight: 700; }
+.bet-row-item .b-win { color: var(--green); font-weight: 800; }
+.bet-row-item .b-lose { }
 
 /* ---------- слоты ---------- */
 .slots-box {
@@ -302,24 +330,52 @@ nav {
 .cell.disabled { pointer-events: none; opacity: .85; }
 
 /* ---------- кейсы ---------- */
+/* бегущая дорожка выигрышей */
 .live-feed {
-  display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px;
-  scrollbar-width: none; min-height: 58px;
+  overflow: hidden; border-radius: 14px; margin-top: 4px;
+  background: var(--card); border: 1px solid rgba(255,255,255,.07);
+  padding: 8px 0; position: relative;
 }
-.live-feed::-webkit-scrollbar { display: none; }
-.feed-item {
-  flex-shrink: 0; background: var(--card); border-radius: 12px;
-  padding: 6px 10px; display: flex; align-items: center; gap: 8px;
-  border-bottom: 2px solid var(--accent);
+.ticker-track {
+  display: flex; gap: 22px; width: max-content;
+  animation: ticker 30s linear infinite;
 }
-.feed-item .f-emoji { font-size: 24px; }
-.feed-item .f-name { font-size: 11px; color: var(--muted); max-width: 70px;
+@keyframes ticker { to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .ticker-track { animation: none; } }
+.feed-item { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.feed-item .f-emoji { font-size: 22px; }
+.feed-item .f-name { font-size: 11px; color: var(--muted); max-width: 90px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feed-item .f-value { font-size: 12px; font-weight: 700; color: var(--gold); }
+.feed-item .f-won { font-size: 11px; color: var(--green); font-weight: 700; }
 
-.cases-list { display: flex; flex-direction: column; gap: 10px; padding-top: 4px; }
+/* сетка кейсов со свечением */
+.cases-list {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-top: 8px;
+}
+.case-card {
+  position: relative; overflow: hidden;
+  background: var(--card); border: 1px solid rgba(255,255,255,.08);
+  border-radius: 18px; padding: 18px 10px 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  cursor: pointer; text-align: center; transition: transform .1s;
+}
+.case-card:active { transform: scale(.96); }
+.case-card .glow {
+  position: absolute; top: 2px; left: 50%; transform: translateX(-50%);
+  width: 96px; height: 96px; border-radius: 50%;
+  filter: blur(22px); opacity: .55; pointer-events: none;
+}
+.case-card .icon { font-size: 56px; position: relative; line-height: 1.2; }
+.case-card .title { font-weight: 800; font-size: 15px; position: relative; }
+.case-card .price-pill {
+  background: var(--card2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 6px 14px;
+  font-weight: 800; font-size: 14px; color: var(--gold);
+  font-variant-numeric: tabular-nums; position: relative;
+}
+.case-card .price-pill.free { color: var(--green); }
 .case-card.locked { opacity: .55; }
-.case-card .price.free { color: var(--green); }
 .case-card {
   background: var(--card); border-radius: 16px; padding: 14px;
   display: flex; align-items: center; gap: 12px; cursor: pointer;

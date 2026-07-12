@@ -1,144 +1,148 @@
-// Краш: ракета летит, множитель растёт m(t)=e^(k·t), забери до взрыва.
+// Краш: общий раунд для всех игроков.
+// Сервер крутит цикл: 5с ставки -> полёт -> взрыв -> 3с пауза.
+// Клиент опрашивает состояние и плавно анимирует множитель между опросами.
 const Crash = (() => {
   const multEl = document.getElementById("crash-mult");
-  const rocketEl = document.getElementById("rocket");
   const hintEl = document.getElementById("crash-hint");
+  const historyEl = document.getElementById("crash-history");
+  const betsEl = document.getElementById("crash-bets");
   const btn = document.getElementById("crash-btn");
   const betInput = document.getElementById("crash-bet");
+  const autoInput = document.getElementById("crash-auto");
 
-  let playing = false;
-  let startTime = 0;   // локальное время старта (мс)
+  let state = null;        // последнее состояние с сервера
+  let flyStart = 0;        // локальная оценка старта полёта (мс)
+  let waitEnd = 0;         // локальная оценка конца приёма ставок (мс)
   let animFrame = 0;
   let pollTimer = 0;
-  let history = [];    // точки взрыва прошлых раундов
+  let betting = false;     // запрос ставки в полёте
 
-  const historyEl = document.getElementById("crash-history");
-  function renderHistory() {
-    historyEl.innerHTML = history
+  const multAt = (sec) => Math.floor(Math.exp(CONFIG.crash_growth * sec) * 100) / 100;
+  const fmt = (n) => n.toLocaleString("ru-RU");
+
+  function renderHistory(history, phase) {
+    const phaseChip = phase === "waiting"
+      ? '<div class="h-chip phase">ожидание</div>'
+      : phase === "flying"
+        ? '<div class="h-chip phase fly">полёт</div>'
+        : '<div class="h-chip phase boom">взрыв</div>';
+    historyEl.innerHTML = phaseChip + (history || [])
       .map((p) => `<div class="h-chip${p >= 2 ? " big" : ""}">${p.toFixed(2)}×</div>`)
       .join("");
   }
-  function setHistory(points) { history = points; renderHistory(); }
-  function pushHistory(point) {
-    history.unshift(point);
-    history = history.slice(0, 10);
-    renderHistory();
+
+  function renderBets(bets) {
+    if (!bets || !bets.length) {
+      betsEl.innerHTML = '<div class="bets-empty">Ставок нет</div>';
+      return;
+    }
+    betsEl.innerHTML = bets.map((b) => {
+      let right = '<span class="b-wait">в игре</span>';
+      if (b.status === "cashed") right = `<span class="b-win">✓ ${b.mult.toFixed(2)}×</span>`;
+      if (b.status === "lost") right = '<span class="b-lose">💥</span>';
+      return `<div class="bet-row-item">
+        <span class="b-name">${b.name}</span>
+        <span class="b-amount">${fmt(b.bet)} 🪙</span>${right}</div>`;
+    }).join("");
   }
 
-  function multAt(sec) {
-    return Math.floor(Math.exp(CONFIG.crash_growth * sec) * 100) / 100;
+  function renderButton() {
+    const my = state?.my;
+    btn.className = "big-btn";
+    if (state?.phase === "waiting") {
+      if (my) { btn.textContent = "Ставка принята ✓"; btn.disabled = true; }
+      else { btn.textContent = "Поставить ставку"; btn.disabled = false; }
+    } else if (state?.phase === "flying") {
+      if (my && my.status === "waiting") {
+        const m = multAt((Date.now() - flyStart) / 1000);
+        btn.textContent = `Забрать ${fmt(Math.floor(my.bet * m))} 🪙`;
+        btn.className = "big-btn cashout";
+        btn.disabled = false;
+      } else if (my && my.status === "cashed") {
+        btn.textContent = `Выплачено ×${my.mult.toFixed(2)}`;
+        btn.disabled = true;
+      } else {
+        btn.textContent = "Раунд идёт…";
+        btn.disabled = true;
+      }
+    } else {
+      btn.textContent = "Ждём новый раунд…";
+      btn.disabled = true;
+    }
   }
 
   function draw() {
-    const sec = (Date.now() - startTime) / 1000;
-    const m = multAt(sec);
-    multEl.textContent = m.toFixed(2) + "×";
-    // ракета поднимается по экрану с ростом множителя
-    const progress = Math.min(1, Math.log(m) / Math.log(15));
-    rocketEl.style.transform =
-      `translate(${progress * 220}%, ${-progress * 340}%) rotate(-45deg)`;
-    if (playing) animFrame = requestAnimationFrame(draw);
-  }
-
-  async function poll() {
-    if (!playing) return;
-    try {
-      const st = await API.call("crash/state");
-      if (st.status === "crashed") return end(st, null);
-      if (st.status === "none") { playing = false; reset(); return; }
-      // синхронизируем локальный таймер с сервером
-      startTime = Date.now() - st.elapsed * 1000;
-    } catch (e) {}
-    pollTimer = setTimeout(poll, 400);
-  }
-
-  function reset() {
-    cancelAnimationFrame(animFrame);
-    clearTimeout(pollTimer);
-    multEl.textContent = "1.00×";
-    multEl.className = "crash-mult";
-    rocketEl.className = "rocket";
-    rocketEl.style.transform = "rotate(-45deg)";
-    hintEl.textContent = "Сделай ставку и запусти ракету";
-    btn.textContent = "Запустить 🚀";
-    btn.className = "big-btn";
-    btn.disabled = false;
-  }
-
-  function end(result, wonMult) {
-    playing = false;
-    cancelAnimationFrame(animFrame);
-    clearTimeout(pollTimer);
-    setBalance(result.balance);
-    pushHistory(result.crash_point);
-    if (wonMult) {
-      multEl.textContent = wonMult.toFixed(2) + "×";
+    if (state?.phase === "flying") {
+      const m = multAt((Date.now() - flyStart) / 1000);
+      multEl.textContent = m.toFixed(2);
       multEl.className = "crash-mult flying";
-      hintEl.textContent = `Взрыв был бы на ${result.crash_point.toFixed(2)}×`;
-      toast(`+${result.payout.toLocaleString("ru-RU")} 🪙 (×${wonMult.toFixed(2)})`, "win");
-      haptic("success");
-    } else {
-      multEl.textContent = result.crash_point.toFixed(2) + "×";
+      hintEl.textContent = "";
+      if (state.my && state.my.status === "waiting") renderButton();
+    } else if (state?.phase === "waiting") {
+      const left = Math.max(0, (waitEnd - Date.now()) / 1000);
+      multEl.textContent = left.toFixed(1) + "с";
+      multEl.className = "crash-mult waiting";
+      hintEl.textContent = "Приём ставок";
+    } else if (state?.phase === "crashed") {
+      multEl.textContent = state.point.toFixed(2);
       multEl.className = "crash-mult boom";
-      rocketEl.classList.add("boom");
-      rocketEl.textContent = "💥";
-      hintEl.textContent = "Ракета взорвалась!";
+      hintEl.textContent = "💥 Взрыв!";
+    }
+    animFrame = requestAnimationFrame(draw);
+  }
+
+  function apply(st) {
+    const prevMyStatus = state?.my?.status;
+    const prevPhase = state?.phase;
+    state = st;
+    setBalance(st.balance);
+    if (st.phase === "waiting") waitEnd = Date.now() + st.until * 1000;
+    if (st.phase === "flying") flyStart = Date.now() - st.elapsed * 1000;
+    renderHistory(st.history, st.phase);
+    renderBets(st.bets);
+    renderButton();
+    // уведомления о смене статуса моей ставки
+    const my = st.my;
+    if (my && my.status === "cashed" && prevMyStatus === "waiting") {
+      toast(`+${fmt(my.payout || Math.floor(my.bet * my.mult))} 🪙 (×${my.mult.toFixed(2)})`, "win");
+      haptic("success");
+    }
+    if (my && my.status === "lost" && prevMyStatus === "waiting" && prevPhase === "flying") {
       toast("Взрыв! Ставка сгорела", "lose");
       haptic("error");
     }
-    btn.disabled = true;
-    setTimeout(() => { rocketEl.textContent = "🚀"; reset(); }, 1800);
+  }
+
+  async function poll() {
+    if (document.getElementById("screen-crash").classList.contains("active")) {
+      try { apply(await API.call("crash/state")); } catch (e) {}
+    }
+    pollTimer = setTimeout(poll, 450);
   }
 
   async function onButton() {
-    if (playing) {  // забрать
+    if (state?.phase === "waiting" && !state.my) {
+      const bet = readBet(betInput);
+      if (bet === null) return;
+      const autoVal = parseFloat(autoInput.value);
+      const body = { bet };
+      if (autoVal && autoVal >= 1.05) body.auto = autoVal;
       btn.disabled = true;
-      try {
-        const r = await API.call("crash/cashout", {});
-        if (r.status === "won") end(r, r.multiplier);
-        else end(r, null);
-      } catch (e) { toast(e.message, "lose"); btn.disabled = false; }
-      return;
+      try { apply(await API.call("crash/bet", body)); }
+      catch (e) { toast(e.message, "lose"); renderButton(); }
+    } else if (state?.phase === "flying" && state.my?.status === "waiting" && !betting) {
+      betting = true;
+      try { apply(await API.call("crash/cashout", {})); }
+      catch (e) { toast(e.message, "lose"); }
+      betting = false;
     }
-    const bet = readBet(betInput);
-    if (bet === null) return;
-    btn.disabled = true;
-    try {
-      const r = await API.call("crash/start", { bet });
-      setBalance(r.balance);
-      playing = true;
-      startTime = Date.now();
-      multEl.className = "crash-mult flying";
-      rocketEl.textContent = "🚀";
-      hintEl.textContent = "Жми «Забрать», пока не взорвалась!";
-      btn.textContent = "Забрать 💰";
-      btn.className = "big-btn cashout";
-      btn.disabled = false;
-      draw();
-      poll();
-    } catch (e) { toast(e.message, "lose"); btn.disabled = false; }
   }
 
-  async function resume() {
-    // если раунд был активен (перезагрузка страницы) — продолжаем
-    try {
-      const st = await API.call("crash/state");
-      if (st.status === "active") {
-        playing = true;
-        startTime = Date.now() - st.elapsed * 1000;
-        multEl.className = "crash-mult flying";
-        hintEl.textContent = "Жми «Забрать», пока не взорвалась!";
-        btn.textContent = "Забрать 💰";
-        btn.className = "big-btn cashout";
-        draw();
-        poll();
-      } else if (st.status === "crashed") {
-        setBalance(st.balance);
-      }
-    } catch (e) {}
-  }
+  function setHistory(points) { renderHistory(points, "waiting"); }
 
   btn.addEventListener("click", onButton);
   bindQuickButtons(document.querySelector("#screen-crash .panel"), betInput);
-  return { resume, setHistory };
+  draw();
+  poll();
+  return { setHistory, resume: () => {} };
 })();

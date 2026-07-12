@@ -21,15 +21,15 @@ const Cases = (() => {
 
   function renderFeed(feed) {
     if (!feed || !feed.length) {
-      feedEl.innerHTML = `<div class="feed-item"><div class="f-emoji">✨</div>
-        <div class="f-name">Открой первый кейс!</div></div>`;
-      return;
+      feed = [{ name: "PlayBot", item: "", emoji: "✨", value: 0 }];
     }
-    feedEl.innerHTML = feed.map((f) =>
+    const items = feed.map((f) =>
       `<div class="feed-item"><div class="f-emoji">${f.emoji}</div>
        <div><div class="f-name">${f.name}</div>
-       <div class="f-value">${f.value.toLocaleString("ru-RU")} 🪙</div></div></div>`
+       <div class="f-won">выиграл ${f.value.toLocaleString("ru-RU")} 🪙</div></div></div>`
     ).join("");
+    // дублируем контент для бесшовной бегущей строки
+    feedEl.innerHTML = `<div class="ticker-track">${items}${items}</div>`;
   }
 
   async function refreshFeed() {
@@ -46,12 +46,12 @@ const Cases = (() => {
       card.className = "case-card" + (locked ? " locked" : "");
       const priceHtml = c.price > 0
         ? `${c.price.toLocaleString("ru-RU")} 🪙`
-        : (locked ? `⏳ ${fmtCooldown(c.cooldown_left)}` : `<span class="free">Бесплатно</span>`);
+        : (locked ? `⏳ ${fmtCooldown(c.cooldown_left)}` : "Бесплатно");
       card.innerHTML =
-        `<div class="icon">${c.emoji}</div>
-         <div class="info"><div class="title">${c.title}</div>
-         <div class="items">${c.items.map((it) => it.emoji).join(" ")}</div></div>
-         <div class="price ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
+        `<div class="glow" style="background: radial-gradient(circle, ${c.glow}, transparent 70%)"></div>
+         <div class="icon" style="filter: drop-shadow(0 0 18px ${c.glow})">${c.emoji}</div>
+         <div class="title">${c.title}</div>
+         <div class="price-pill ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
       card.addEventListener("click", () => open(c));
       listEl.appendChild(card);
     });

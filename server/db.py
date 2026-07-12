@@ -60,6 +60,15 @@ CREATE TABLE IF NOT EXISTS promo_redemptions(
     redeemed_at INTEGER NOT NULL,
     PRIMARY KEY(user_id, code)
 );
+CREATE TABLE IF NOT EXISTS kv(
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS crash_rounds(
+    round_id INTEGER PRIMARY KEY,
+    point REAL NOT NULL,
+    crashed_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS seeds(
     user_id INTEGER PRIMARY KEY,
     server_seed TEXT NOT NULL,
@@ -383,15 +392,34 @@ def referral_stats(user_id: int) -> dict:
     return {"invited": invited, "earned": earned, "percent": pct, "next_level": next_level}
 
 
-def crash_history(user_id: int, limit: int = 10) -> list[float]:
-    """Точки взрыва последних раундов краша пользователя (новые первыми)."""
+def get_kv(key: str, default: str = "") -> str:
+    with _lock:
+        row = _conn.execute("SELECT value FROM kv WHERE key=?", (key,)).fetchone()
+        return row["value"] if row else default
+
+
+def set_kv(key: str, value: str) -> None:
+    with _lock:
+        _conn.execute("INSERT OR REPLACE INTO kv(key, value) VALUES(?,?)", (key, value))
+        _conn.commit()
+
+
+def add_crash_round(round_id: int, point: float) -> None:
+    with _lock:
+        _conn.execute(
+            "INSERT OR REPLACE INTO crash_rounds(round_id, point, crashed_at) VALUES(?,?,?)",
+            (round_id, point, int(time.time())),
+        )
+        _conn.commit()
+
+
+def last_crash_points(limit: int = 10) -> list[float]:
+    """Точки взрыва последних общих раундов (новые первыми)."""
     with _lock:
         rows = _conn.execute(
-            "SELECT detail FROM history WHERE user_id=? AND game='crash'"
-            " ORDER BY id DESC LIMIT ?",
-            (user_id, limit),
+            "SELECT point FROM crash_rounds ORDER BY round_id DESC LIMIT ?", (limit,)
         ).fetchall()
-        return [json.loads(r["detail"])["point"] for r in rows]
+        return [r["point"] for r in rows]
 
 
 # ------------------------------------------------------------- инвентарь

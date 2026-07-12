@@ -46,15 +46,14 @@
     </div>
   </section>
 
-  <!-- ============================== КРАШ -->
+  <!-- ============================== КРАШ (общий раунд) -->
   <section id="screen-crash" class="screen">
     <div class="game-head">
       <button class="back-btn" data-back>‹</button><span>Краш</span>
     </div>
     <div class="crash-sky" id="crash-sky">
-      <div class="crash-mult" id="crash-mult">1.00×</div>
-      <div class="rocket" id="rocket">🚀</div>
-      <div class="crash-hint" id="crash-hint">Сделай ставку и запусти ракету</div>
+      <div class="crash-mult" id="crash-mult">…</div>
+      <div class="crash-hint" id="crash-hint"></div>
     </div>
     <div class="crash-history" id="crash-history"></div>
     <div class="panel">
@@ -65,7 +64,16 @@
           <button data-mul="0.5">½</button><button data-mul="2">2×</button><button data-max="1">MAX</button>
         </div>
       </div>
-      <button id="crash-btn" class="big-btn">Запустить 🚀</button>
+      <div class="bet-row">
+        <label>Авто-вывод</label>
+        <input type="number" id="crash-auto" placeholder="выкл" step="0.1" min="1.05" inputmode="decimal">
+        <span class="auto-x">×</span>
+      </div>
+      <button id="crash-btn" class="big-btn">Поставить ставку</button>
+    </div>
+    <div class="panel bets-panel">
+      <div class="bets-title">Ставки раунда</div>
+      <div id="crash-bets" class="bets-list"><div class="bets-empty">Ставок нет</div></div>
     </div>
   </section>
 
