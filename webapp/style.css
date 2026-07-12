@@ -239,32 +239,35 @@ nav {
   overflow: hidden; display: flex; align-items: center; justify-content: center;
 }
 .crash-mult { font-size: 52px; font-weight: 900; z-index: 2; transition: color .2s; }
-.crash-mult.flying { color: var(--green); }
+.crash-mult.flying { color: var(--red); }
 .crash-mult.boom { color: var(--red); }
-.rocket {
-  position: absolute; left: 10%; bottom: 8%; font-size: 44px; z-index: 1;
-  transform: rotate(-45deg);
+#crash-fx { position: absolute; inset: 0; width: 100%; height: 100%; }
+.crash-sky.shake { animation: skyShake .5s; }
+@keyframes skyShake {
+  10% { transform: translate(-7px, 4px); }
+  30% { transform: translate(7px, -4px); }
+  50% { transform: translate(-5px, 3px); }
+  70% { transform: translate(5px, -2px); }
+  90% { transform: translate(-2px, 1px); }
 }
-.rocket.idle { animation: bob 2.2s ease-in-out infinite; }
+.rocket {
+  position: absolute; left: 0; top: 0; font-size: 44px; z-index: 1;
+  will-change: transform;
+}
+.rocket span { display: inline-block; transform: rotate(-45deg); }
+.rocket.idle span { animation: bob 2.2s ease-in-out infinite; }
 @keyframes bob {
   0%, 100% { transform: translateY(0) rotate(-45deg); }
   50% { transform: translateY(-8px) rotate(-45deg); }
 }
-.rocket.fly::after {  /* выхлоп */
-  content: "🔥"; position: absolute; left: -14px; bottom: -16px;
-  font-size: 22px; transform: rotate(135deg);
-  animation: flame .18s ease-in-out infinite alternate;
-}
-@keyframes flame { from { opacity: .5; scale: .8; } to { opacity: 1; scale: 1.15; } }
-.rocket span { display: inline-block; }
 .rocket.boom span { animation: boomPulse .55s ease-out; }
 @keyframes boomPulse {
   0% { transform: scale(.3); opacity: .3; }
-  55% { transform: scale(1.7); opacity: 1; }
+  55% { transform: scale(1.9); opacity: 1; }
   100% { transform: scale(1); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rocket.idle, .rocket.fly::after, .rocket.boom span { animation: none; }
+  .rocket.idle span, .rocket.boom span, .crash-sky.shake { animation: none; }
 }
 .crash-hint {
   position: absolute; bottom: 12px; width: 100%; text-align: center;
