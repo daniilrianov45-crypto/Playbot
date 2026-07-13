@@ -9,7 +9,7 @@ DB_PATH = os.environ.get(
     "DB_PATH", os.path.join(os.path.dirname(__file__), "..", "playbot.db")
 )
 
-START_BALANCE = 5000
+START_BALANCE = 100  # стартовые звёзды новичку
 
 _lock = threading.Lock()
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -114,8 +114,8 @@ with _lock:
 
 # уровни партнёрки: (минимум приглашённых, доля от проигрышей друзей в %)
 REF_LEVELS = [(20, 20), (5, 15), (0, 10)]
-REF_BONUS_FRIEND = 1000   # бонус приглашённому
-REF_BONUS_INVITER = 500   # бонус пригласившему за каждого друга
+REF_BONUS_FRIEND = 50    # бонус приглашённому, ⭐
+REF_BONUS_INVITER = 25   # бонус пригласившему за каждого друга, ⭐
 
 
 def ref_percent(invited: int) -> int:
@@ -256,6 +256,21 @@ def add_history(user_id: int, game: str, bet: int, payout: int, detail: dict) ->
                         (commission, commission, ref),
                     )
         _conn.commit()
+
+
+def find_user(query: str) -> dict | None:
+    """Ищет пользователя по числовому ID или @username."""
+    with _lock:
+        if query.lstrip("@").isdigit():
+            row = _conn.execute(
+                "SELECT * FROM users WHERE id=?", (int(query.lstrip("@")),)
+            ).fetchone()
+        else:
+            row = _conn.execute(
+                "SELECT * FROM users WHERE LOWER(username)=LOWER(?)",
+                (query.lstrip("@"),),
+            ).fetchone()
+        return dict(row) if row else None
 
 
 def user_exists(user_id: int) -> bool:

@@ -63,10 +63,18 @@
     try {
       const r = await API.call("promo/redeem", { code });
       setBalance(r.balance);
-      toast(`Промокод активирован: +${r.reward.toLocaleString("ru-RU")} 🪙`, "win");
+      toast(`Промокод активирован: +${r.reward.toLocaleString("ru-RU")} ⭐`, "win");
       haptic("success");
       input.value = "";
     } catch (e) { toast(e.message, "lose"); }
+  });
+
+  // поддержка (вывод подарков)
+  document.getElementById("support-btn").addEventListener("click", () => {
+    if (!CONFIG.support) { toast("Поддержка появится после настройки бота"); return; }
+    const url = `https://t.me/${CONFIG.support}`;
+    if (tg?.openTelegramLink) tg.openTelegramLink(url);
+    else window.open(url, "_blank");
   });
 
   // старт
@@ -79,6 +87,10 @@
       Profile.setUser(data.user);
       Crash.setHistory(data.crash_history || []);
       Cases.renderFeed(data.feed || []);
+      if (CONFIG.star_rate_rub) {
+        document.getElementById("star-rate").textContent =
+          `1 ⭐ ≈ ${CONFIG.star_rate_rub} ₽ · курс Fragment`;
+      }
       Crash.resume();
       Mines.resume();
       Cases.load();

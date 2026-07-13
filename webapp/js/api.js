@@ -53,6 +53,6 @@ function bindQuickButtons(panel, input) {
 function readBet(input) {
   const v = parseInt(input.value);
   if (!v || v < CONFIG.min_bet) { toast(`Минимальная ставка ${CONFIG.min_bet}`); return null; }
-  if (v > getBalance()) { toast("Недостаточно монет", "lose"); return null; }
+  if (v > getBalance()) { toast("Недостаточно звёзд", "lose"); return null; }
   return v;
 }

@@ -37,7 +37,7 @@ async def cmd_start(message: Message):
         "🚀 <b>PlayBot</b> — мини-игры с честной механикой!\n\n"
         "🎯 Краш, слоты, мины и кейсы\n"
         "🔍 Каждый результат можно проверить (provably fair)\n"
-        "🪙 Новичкам — 5000 монет на старт\n\n"
+        "⭐ Новичкам — 100 звёзд на старт\n\n"
         "Жми «Играть»!",
         reply_markup=kb,
         parse_mode="HTML",
@@ -65,6 +65,39 @@ async def cmd_addpromo(message: Message):
         )
     else:
         await message.answer("Такой код уже существует")
+
+
+@dp.message(Command("inv"))
+async def cmd_inv(message: Message):
+    """Проверка инвентаря игрока поддержкой: /inv <id или @username>.
+
+    Показывает НАСТОЯЩИЙ инвентарь из базы — скриншоты игрока подделать можно,
+    эту команду нельзя.
+    """
+    if message.from_user.id != ADMIN_ID:
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 2:
+        await message.answer("Формат: /inv 12345678 или /inv @username")
+        return
+    user = db.find_user(parts[1])
+    if user is None:
+        await message.answer("Игрок не найден в базе")
+        return
+    items = db.get_inventory(user["id"])
+    lines = [
+        f"👤 <b>{user['first_name']}</b>"
+        + (f" (@{user['username']})" if user["username"] else "")
+        + f" · id {user['id']}",
+        f"⭐ Баланс: <b>{user['balance']}</b>",
+        "",
+        f"🎒 Инвентарь ({len(items)}):",
+    ]
+    if items:
+        lines += [f"  {it['emoji']} {it['name']} — {it['value']}⭐" for it in items]
+    else:
+        lines.append("  пусто")
+    await message.answer("\n".join(lines), parse_mode="HTML")
 
 
 async def main():

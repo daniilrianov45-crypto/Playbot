@@ -13,7 +13,7 @@ const Tasks = (() => {
          <div class="t-info">
            <div class="t-title">${t.title}</div>
            <div class="t-progress"><div class="t-bar" style="width:${t.progress / t.goal * 100}%"></div></div>
-           <div class="t-count">${t.progress}/${t.goal} · награда ${t.reward.toLocaleString("ru-RU")} 🪙</div>
+           <div class="t-count">${t.progress}/${t.goal} · награда ${t.reward.toLocaleString("ru-RU")} ⭐</div>
          </div>
          <button class="t-claim"></button>`;
       const btn = card.querySelector(".t-claim");
@@ -27,7 +27,7 @@ const Tasks = (() => {
           try {
             const r = await API.call("tasks/claim", { task_id: t.id });
             setBalance(r.balance);
-            toast(`+${r.reward.toLocaleString("ru-RU")} 🪙 за задание!`, "win");
+            toast(`+${r.reward.toLocaleString("ru-RU")} ⭐ за задание!`, "win");
             haptic("success");
             load();
           } catch (e) { toast(e.message, "lose"); }

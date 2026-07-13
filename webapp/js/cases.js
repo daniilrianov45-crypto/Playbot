@@ -26,7 +26,7 @@ const Cases = (() => {
     const items = feed.map((f) =>
       `<div class="feed-item"><div class="f-emoji">${f.emoji}</div>
        <div><div class="f-name">${f.name}</div>
-       <div class="f-won">выиграл ${f.value.toLocaleString("ru-RU")} 🪙</div></div></div>`
+       <div class="f-won">выиграл ${f.value.toLocaleString("ru-RU")} ⭐</div></div></div>`
     ).join("");
     // дублируем контент для бесшовной бегущей строки
     feedEl.innerHTML = `<div class="ticker-track">${items}${items}</div>`;
@@ -45,7 +45,7 @@ const Cases = (() => {
       const locked = c.cooldown_left > 0;
       card.className = "case-card" + (locked ? " locked" : "");
       const priceHtml = c.price > 0
-        ? `${c.price.toLocaleString("ru-RU")} 🪙`
+        ? `${c.price.toLocaleString("ru-RU")} ⭐`
         : (locked ? `⏳ ${fmtCooldown(c.cooldown_left)}` : "Бесплатно");
       card.innerHTML =
         `<div class="glow" style="background: radial-gradient(circle, ${c.glow}, transparent 70%)"></div>
@@ -67,7 +67,7 @@ const Cases = (() => {
   async function open(c) {
     if (busy) return;
     if (c.cooldown_left > 0) { toast(`Доступен через ${fmtCooldown(c.cooldown_left)}`); return; }
-    if (c.price > getBalance()) { toast("Недостаточно монет", "lose"); return; }
+    if (c.price > getBalance()) { toast("Недостаточно звёзд", "lose"); return; }
     busy = true;
 
     let data;
@@ -105,11 +105,11 @@ const Cases = (() => {
     setTimeout(() => {
       setBalance(data.balance);
       const it = data.item;
-      const note = data.coins
-        ? "Монеты зачислены на баланс ✅"
+      const note = data.stars
+        ? "Звёзды зачислены на баланс ✅"
         : "Подарок добавлен в инвентарь 🎒";
       resultEl.innerHTML =
-        `${it.emoji} <b>${it.name}</b> — <span class="value">${it.value.toLocaleString("ru-RU")} 🪙</span><br>
+        `${it.emoji} <b>${it.name}</b> — <span class="value">${it.value.toLocaleString("ru-RU")} ⭐</span><br>
          <span style="font-size:13px;color:var(--muted)">${note}</span>`;
       haptic("success");
       backBtn.disabled = false;

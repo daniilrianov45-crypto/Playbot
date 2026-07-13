@@ -133,7 +133,7 @@ const Crash = (() => {
       if (b.status === "lost") right = '<span class="b-lose">💥</span>';
       return `<div class="bet-row-item">
         <span class="b-name">${b.name}</span>
-        <span class="b-amount">${fmt(b.bet)} 🪙</span>${right}</div>`;
+        <span class="b-amount">${fmt(b.bet)} ⭐</span>${right}</div>`;
     }).join("");
   }
 
@@ -146,7 +146,7 @@ const Crash = (() => {
     } else if (state?.phase === "flying") {
       if (my && my.status === "waiting") {
         const m = multAt((Date.now() - flyStart) / 1000);
-        btn.textContent = `Забрать ${fmt(Math.floor(my.bet * m))} 🪙`;
+        btn.textContent = `Забрать ${fmt(Math.floor(my.bet * m))} ⭐`;
         btn.className = "big-btn cashout";
         btn.disabled = false;
       } else if (my && my.status === "cashed") {
@@ -217,7 +217,7 @@ const Crash = (() => {
     }
     const my = st.my;
     if (my && my.status === "cashed" && prevMyStatus === "waiting") {
-      toast(`+${fmt(my.payout || Math.floor(my.bet * my.mult))} 🪙 (×${my.mult.toFixed(2)})`, "win");
+      toast(`+${fmt(my.payout || Math.floor(my.bet * my.mult))} ⭐ (×${my.mult.toFixed(2)})`, "win");
       haptic("success");
     }
     if (my && my.status === "lost" && prevMyStatus === "waiting" && prevPhase === "flying") {

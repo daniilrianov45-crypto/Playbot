@@ -43,7 +43,7 @@ const Slots = (() => {
 
     setBalance(data.balance);
     if (data.payout > 0) {
-      resultEl.textContent = `+${data.payout.toLocaleString("ru-RU")} 🪙 (×${data.multiplier})`;
+      resultEl.textContent = `+${data.payout.toLocaleString("ru-RU")} ⭐ (×${data.multiplier})`;
       resultEl.className = "slots-result win";
       haptic("success");
     } else {

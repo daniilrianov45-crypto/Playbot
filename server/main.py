@@ -2,6 +2,7 @@
 
 Запуск:  uvicorn server.main:app --host 0.0.0.0 --port 8080
 """
+import json
 import math
 import os
 import time
@@ -22,6 +23,32 @@ WEBAPP_DIR = os.path.join(os.path.dirname(__file__), "..", "webapp")
 # ------------------------------------------------------------------ auth
 
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "")
+SUPPORT_USERNAME = os.environ.get("SUPPORT_USERNAME", "")
+
+# ------------------------------------------------------------------ курс звезды
+# Ориентир — Fragment, где звёзды дешевле всего: ~$0.015 за 1⭐.
+# Рублёвый курс = курс доллара (кэш на час) * цена звезды в долларах.
+import urllib.request
+
+STAR_USD = 0.015
+_rate_cache = {"t": 0.0, "rub": 1.35}
+
+
+def star_rate_rub() -> float:
+    now = time.time()
+    if now - _rate_cache["t"] > 3600:
+        _rate_cache["t"] = now
+        try:
+            req = urllib.request.Request(
+                "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=rub",
+                headers={"User-Agent": "playbot"},
+            )
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                usd_rub = json.load(resp)["tether"]["rub"]
+            _rate_cache["rub"] = round(usd_rub * STAR_USD, 2)
+        except Exception:
+            pass  # оставляем прошлое значение
+    return _rate_cache["rub"]
 
 
 def current_user(x_init_data: str = Header(default="")) -> dict:
@@ -92,6 +119,8 @@ def api_init(user: dict = Depends(current_user)):
             "max_bet": games.MAX_BET,
             "house_edge": games.HOUSE_EDGE,
             "crash_growth": games.CRASH_GROWTH,
+            "star_rate_rub": star_rate_rub(),
+            "support": SUPPORT_USERNAME,
         },
     }
 
@@ -452,16 +481,16 @@ def api_cases_open(body: CaseOpenBody, user: dict = Depends(current_user)):
         db.case_mark_open(user["id"], body.case_id)
     rolls, nonce = _roll(user["id"], 1)
     item = games.case_open(body.case_id, rolls[0])
-    coins = bool(case.get("coins"))
-    if coins:  # валютный кейс: сразу на баланс, минуя инвентарь
+    stars = bool(item.get("stars"))
+    if stars:  # выпали звёзды: сразу на баланс, минуя инвентарь
         db.credit(user["id"], item["value"])
         item_id = None
-    else:
+    else:      # выпал подарок Telegram: в инвентарь
         item_id = db.add_inventory_item(user["id"], item, body.case_id)
     db.add_history(user["id"], "case", case["price"], item["value"],
                    {"case": body.case_id, "item": item["name"], "emoji": item["emoji"],
                     "value": item["value"], "nonce": nonce})
-    return {"item": item, "item_id": item_id, "coins": coins, "nonce": nonce,
+    return {"item": item, "item_id": item_id, "stars": stars, "nonce": nonce,
             "balance": db.get_balance(user["id"])}
 
 
@@ -493,15 +522,15 @@ def api_feed():
 
 TASKS = [
     {"id": "crash3", "emoji": "🚀", "title": "Сыграй 3 раунда краша",
-     "goal": 3, "reward": 150, "metric": "crash_rounds"},
+     "goal": 3, "reward": 10, "metric": "crash_rounds"},
     {"id": "slots5", "emoji": "🎰", "title": "Сделай 5 спинов в слотах",
-     "goal": 5, "reward": 150, "metric": "slots_spins"},
+     "goal": 5, "reward": 10, "metric": "slots_spins"},
     {"id": "mines_win", "emoji": "💣", "title": "Выиграй раунд в минах",
-     "goal": 1, "reward": 200, "metric": "mines_wins"},
+     "goal": 1, "reward": 15, "metric": "mines_wins"},
     {"id": "cases3", "emoji": "🎁", "title": "Открой 3 кейса",
-     "goal": 3, "reward": 200, "metric": "cases_opened"},
+     "goal": 3, "reward": 15, "metric": "cases_opened"},
     {"id": "invite1", "emoji": "🤝", "title": "Пригласи друга",
-     "goal": 1, "reward": 500, "metric": "invited"},
+     "goal": 1, "reward": 25, "metric": "invited"},
 ]
 
 

@@ -15,7 +15,7 @@
   <div class="logo">🚀 PlayBot</div>
   <div class="header-right">
     <button id="fair-btn" class="chip" title="Честная игра">🛡️</button>
-    <div class="balance chip">🪙 <span id="balance">…</span></div>
+    <div class="balance chip">⭐ <span id="balance">…</span></div>
   </div>
 </header>
 
@@ -61,7 +61,7 @@
     <div class="panel">
       <div class="bet-row">
         <label>Ставка</label>
-        <input type="number" id="crash-bet" value="100" min="10">
+        <input type="number" id="crash-bet" value="10" min="1">
         <div class="quick">
           <button data-mul="0.5">½</button><button data-mul="2">2×</button><button data-max="1">MAX</button>
         </div>
@@ -95,7 +95,7 @@
     <div class="panel">
       <div class="bet-row">
         <label>Ставка</label>
-        <input type="number" id="slots-bet" value="100" min="10">
+        <input type="number" id="slots-bet" value="10" min="1">
         <div class="quick">
           <button data-mul="0.5">½</button><button data-mul="2">2×</button><button data-max="1">MAX</button>
         </div>
@@ -121,7 +121,7 @@
     <div class="panel">
       <div class="bet-row" id="mines-setup">
         <label>Ставка</label>
-        <input type="number" id="mines-bet" value="100" min="10">
+        <input type="number" id="mines-bet" value="10" min="1">
         <select id="mines-count">
           <option value="3">3 💣</option>
           <option value="5" selected>5 💣</option>
@@ -157,6 +157,7 @@
       <div class="avatar" id="profile-avatar"></div>
       <div class="profile-name" id="profile-name">…</div>
       <div class="profile-username" id="profile-username"></div>
+      <div class="star-rate chip" id="star-rate"></div>
     </div>
     <h3 class="inv-title">Ваш инвентарь</h3>
     <div id="inventory-list" class="inventory-list"></div>
@@ -174,16 +175,26 @@
           <div class="ref-sub">твоя доля</div>
         </div>
         <div class="ref-stat"><b id="ref-invited">0</b><span>приглашено</span></div>
-        <div class="ref-stat"><b id="ref-earned">0</b><span>заработано 🪙</span></div>
+        <div class="ref-stat"><b id="ref-earned">0</b><span>заработано ⭐</span></div>
       </div>
       <div class="ref-progress"><div class="ref-bar" id="ref-bar"></div></div>
       <div class="ref-next" id="ref-next"></div>
       <div class="ref-benefits">
-        Друг получает <b>+1000 🪙</b> на старте, ты — <b>+500 🪙</b> сразу
+        Друг получает <b>+50 ⭐</b> на старте, ты — <b>+25 ⭐</b> сразу
         и свою долю с его игр. Начисления <b>мгновенно</b>, без ожидания сутками.
       </div>
       <button id="ref-share" class="big-btn">Пригласить друга 🚀</button>
       <button id="ref-copy" class="big-btn secondary">Скопировать ссылку</button>
+    </div>
+
+    <h3 class="inv-title">📤 Вывод подарков</h3>
+    <div class="ref-card">
+      <div class="ref-benefits">
+        Выиграл подарок? Напиши в <b>поддержку</b> — мы сверим твой инвентарь
+        в базе (подделать нельзя) и отправим <b>подарок Telegram</b>
+        или <b>звёзды</b> — на выбор.
+      </div>
+      <button id="support-btn" class="big-btn">Написать в поддержку 💬</button>
     </div>
 
     <h3 class="inv-title">🎟 Промокод</h3>

@@ -26,13 +26,13 @@ const Profile = (() => {
       el.innerHTML =
         `<div class="i-emoji">${it.emoji}</div>
          <div class="i-name">${it.name}</div>
-         <div class="i-value">${it.value.toLocaleString("ru-RU")} 🪙</div>
+         <div class="i-value">${it.value.toLocaleString("ru-RU")} ⭐</div>
          <button>Продать</button>`;
       el.querySelector("button").addEventListener("click", async () => {
         try {
           const r = await API.call("inventory/sell", { item_id: it.id });
           setBalance(r.balance);
-          toast(`Продано за ${r.sold.toLocaleString("ru-RU")} 🪙`, "win");
+          toast(`Продано за ${r.sold.toLocaleString("ru-RU")} ⭐`, "win");
           load();
         } catch (e) { toast(e.message, "lose"); }
       });
@@ -73,7 +73,7 @@ const Profile = (() => {
 
   document.getElementById("ref-share").addEventListener("click", () => {
     if (!refLink) { toast("Ссылка появится после настройки бота"); return; }
-    const text = "Играй со мной в PlayBot — получишь 1000 монет на старте! 🎁";
+    const text = "Играй со мной в PlayBot — получишь 50 звёзд на старте! 🎁";
     const url = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`;
     if (tg?.openTelegramLink) tg.openTelegramLink(url);
     else window.open(url, "_blank");

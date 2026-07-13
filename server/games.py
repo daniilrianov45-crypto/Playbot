@@ -8,8 +8,8 @@ import math
 HOUSE_EDGE = 0.04          # краш и мины: возврат игроку 96%
 CRASH_GROWTH = 0.12        # множитель краша: m(t) = e^(0.12 * t_сек)
 
-MIN_BET = 10
-MAX_BET = 100_000
+MIN_BET = 1
+MAX_BET = 10_000
 
 # ---------------------------------------------------------------- краш
 
@@ -84,20 +84,22 @@ def mines_multiplier(mines_count: int, revealed: int) -> float:
 # ---------------------------------------------------------------- кейсы
 
 CASES = {
+    # value везде в звёздах; item с "stars": True падает сразу на баланс,
+    # подарки (реальные подарки Telegram) — в инвентарь.
+    # Цены подарков — примерные рыночные (floor на маркетплейсах), правятся здесь.
     "free": {
         "title": "Бесплатный",
         "emoji": "🎉",
         "glow": "#4cd964",
         "price": 0,
         "cooldown": 4 * 3600,  # раз в 4 часа
-        "coins": True,  # только валюта, сразу на баланс
         "items": [
-            {"name": "5 монет", "emoji": "🪙", "value": 5, "weight": 30},
-            {"name": "10 монет", "emoji": "🪙", "value": 10, "weight": 25},
-            {"name": "20 монет", "emoji": "🪙", "value": 20, "weight": 20},
-            {"name": "40 монет", "emoji": "💰", "value": 40, "weight": 15},
-            {"name": "60 монет", "emoji": "💰", "value": 60, "weight": 8},
-            {"name": "150 монет", "emoji": "💎", "value": 150, "weight": 2},
+            {"name": "1 звезда", "emoji": "⭐", "value": 1, "weight": 40, "stars": True},
+            {"name": "2 звезды", "emoji": "⭐", "value": 2, "weight": 30, "stars": True},
+            {"name": "3 звезды", "emoji": "⭐", "value": 3, "weight": 15, "stars": True},
+            {"name": "5 звёзд", "emoji": "✨", "value": 5, "weight": 10, "stars": True},
+            {"name": "10 звёзд", "emoji": "✨", "value": 10, "weight": 4, "stars": True},
+            {"name": "25 звёзд", "emoji": "💫", "value": 25, "weight": 1, "stars": True},
         ],
     },
     "daily": {
@@ -106,98 +108,102 @@ CASES = {
         "glow": "#ffd24d",
         "price": 0,
         "cooldown": 24 * 3600,
-        "coins": True,
         "items": [
-            {"name": "50 монет", "emoji": "🪙", "value": 50, "weight": 30},
-            {"name": "100 монет", "emoji": "🪙", "value": 100, "weight": 25},
-            {"name": "150 монет", "emoji": "💰", "value": 150, "weight": 20},
-            {"name": "300 монет", "emoji": "💰", "value": 300, "weight": 15},
-            {"name": "600 монет", "emoji": "💎", "value": 600, "weight": 8},
-            {"name": "1500 монет", "emoji": "👑", "value": 1500, "weight": 2},
+            {"name": "5 звёзд", "emoji": "⭐", "value": 5, "weight": 35, "stars": True},
+            {"name": "10 звёзд", "emoji": "⭐", "value": 10, "weight": 30, "stars": True},
+            {"name": "15 звёзд", "emoji": "✨", "value": 15, "weight": 15, "stars": True},
+            {"name": "25 звёзд", "emoji": "✨", "value": 25, "weight": 12, "stars": True},
+            {"name": "50 звёзд", "emoji": "💫", "value": 50, "weight": 6, "stars": True},
+            {"name": "100 звёзд", "emoji": "💫", "value": 100, "weight": 2, "stars": True},
         ],
     },
-    "stardust": {
-        "title": "Звёздная пыль",
-        "emoji": "✨",
+    "light": {
+        "title": "Лайт",
+        "emoji": "🐰",  # топ-подарок кейса — Jelly Bunny
         "glow": "#8ab6ff",
+        "price": 25,
+        "items": [
+            {"name": "10 звёзд", "emoji": "⭐", "value": 10, "weight": 40, "stars": True},
+            {"name": "15 звёзд", "emoji": "⭐", "value": 15, "weight": 25, "stars": True},
+            {"name": "25 звёзд", "emoji": "✨", "value": 25, "weight": 14, "stars": True},
+            {"name": "Lol Pop", "emoji": "🍭", "value": 40, "weight": 12},
+            {"name": "B-Day Candle", "emoji": "🕯", "value": 55, "weight": 6},
+            {"name": "Jelly Bunny", "emoji": "🐰", "value": 90, "weight": 3},
+        ],
+    },
+    "sweet": {
+        "title": "Сладкий",
+        "emoji": "🍓",  # топ — Berry Box
+        "glow": "#ff8ab6",
+        "price": 60,
+        "items": [
+            {"name": "20 звёзд", "emoji": "⭐", "value": 20, "weight": 34, "stars": True},
+            {"name": "40 звёзд", "emoji": "✨", "value": 40, "weight": 26, "stars": True},
+            {"name": "Candy Cane", "emoji": "🍬", "value": 45, "weight": 15},
+            {"name": "Homemade Cake", "emoji": "🍰", "value": 75, "weight": 13},
+            {"name": "Spiced Wine", "emoji": "🍷", "value": 110, "weight": 8},
+            {"name": "Snow Globe", "emoji": "❄️", "value": 190, "weight": 4},
+            {"name": "Berry Box", "emoji": "🍓", "value": 300, "weight": 2},
+        ],
+    },
+    "snoop": {
+        "title": "Снуп Дог",
+        "emoji": "🤟",  # топ — Westside Sign
+        "glow": "#ffe066",
         "price": 150,
         "items": [
-            {"name": "Звёздочка", "emoji": "🌟", "value": 30, "weight": 30},
-            {"name": "Леденец", "emoji": "🍭", "value": 60, "weight": 25},
-            {"name": "Шарик", "emoji": "🎈", "value": 100, "weight": 18},
-            {"name": "Капкейк", "emoji": "🧁", "value": 180, "weight": 14},
-            {"name": "Тарелка", "emoji": "🛸", "value": 400, "weight": 10},
-            {"name": "Комета", "emoji": "💫", "value": 1200, "weight": 3},
+            {"name": "50 звёзд", "emoji": "⭐", "value": 50, "weight": 28, "stars": True},
+            {"name": "75 звёзд", "emoji": "✨", "value": 75, "weight": 22, "stars": True},
+            {"name": "100 звёзд", "emoji": "💫", "value": 100, "weight": 18, "stars": True},
+            {"name": "Snoop Dogg", "emoji": "🐶", "value": 150, "weight": 15},
+            {"name": "Snoop Cigar", "emoji": "🚬", "value": 250, "weight": 9},
+            {"name": "Low Rider", "emoji": "🚗", "value": 400, "weight": 5},
+            {"name": "Westside Sign", "emoji": "🤟", "value": 700, "weight": 3},
         ],
     },
-    "duck": {
-        "title": "Утиный бунт",
-        "emoji": "🦆",
-        "glow": "#ffe066",
+    "frog": {
+        "title": "Поцелуй фрога",
+        "emoji": "⌚",  # топ — Swiss Watch
+        "glow": "#7cf5a0",
         "price": 300,
         "items": [
-            {"name": "Носки", "emoji": "🧦", "value": 50, "weight": 32},
-            {"name": "Утка", "emoji": "🦆", "value": 150, "weight": 26},
-            {"name": "Сочок", "emoji": "🧃", "value": 250, "weight": 18},
-            {"name": "Диско-шар", "emoji": "🪩", "value": 500, "weight": 14},
-            {"name": "Наушники", "emoji": "🎧", "value": 900, "weight": 8},
-            {"name": "Кроссы", "emoji": "👟", "value": 2000, "weight": 2},
+            {"name": "100 звёзд", "emoji": "⭐", "value": 100, "weight": 34, "stars": True},
+            {"name": "150 звёзд", "emoji": "✨", "value": 150, "weight": 25, "stars": True},
+            {"name": "Sakura Flower", "emoji": "🌸", "value": 300, "weight": 18},
+            {"name": "Kissed Frog", "emoji": "🐸", "value": 500, "weight": 12},
+            {"name": "Electric Skull", "emoji": "💀", "value": 700, "weight": 7},
+            {"name": "Genie Lamp", "emoji": "🪔", "value": 1200, "weight": 3},
+            {"name": "Swiss Watch", "emoji": "⌚", "value": 1500, "weight": 1},
         ],
     },
-    "robo": {
-        "title": "Робо-бокс",
-        "emoji": "🤖",
-        "glow": "#7cf5ff",
-        "price": 500,
-        "items": [
-            {"name": "Шестерёнка", "emoji": "⚙️", "value": 100, "weight": 33},
-            {"name": "Батарейка", "emoji": "🔋", "value": 200, "weight": 26},
-            {"name": "Джойстик", "emoji": "🕹", "value": 400, "weight": 18},
-            {"name": "Робот", "emoji": "🤖", "value": 800, "weight": 13},
-            {"name": "Дрон", "emoji": "🚁", "value": 1500, "weight": 8},
-            {"name": "Спутник", "emoji": "🛰", "value": 3000, "weight": 2},
-        ],
-    },
-    "moon": {
-        "title": "Лунный лут",
-        "emoji": "🌙",
-        "glow": "#b39dff",
-        "price": 1000,
-        "items": [
-            {"name": "Новолуние", "emoji": "🌑", "value": 200, "weight": 33},
-            {"name": "Полумесяц", "emoji": "🌗", "value": 400, "weight": 25},
-            {"name": "Полнолуние", "emoji": "🌕", "value": 800, "weight": 18},
-            {"name": "Ракета", "emoji": "🚀", "value": 1500, "weight": 14},
-            {"name": "Космонавт", "emoji": "👨‍🚀", "value": 3000, "weight": 8},
-            {"name": "Галактика", "emoji": "🌌", "value": 6000, "weight": 2},
-        ],
-    },
-    "plasma": {
-        "title": "Плазма",
-        "emoji": "🔮",
+    "cat": {
+        "title": "Кот в шоке",
+        "emoji": "💎",  # топ — Ion Gem
         "glow": "#c86bff",
-        "price": 2000,
+        "price": 800,
         "items": [
-            {"name": "Кристалл", "emoji": "💠", "value": 400, "weight": 34},
-            {"name": "Молния", "emoji": "⚡", "value": 800, "weight": 25},
-            {"name": "Сфера", "emoji": "🔮", "value": 1600, "weight": 18},
-            {"name": "Оберег", "emoji": "🧿", "value": 3000, "weight": 13},
-            {"name": "Комета", "emoji": "☄️", "value": 6000, "weight": 7},
-            {"name": "Сверхновая", "emoji": "🌠", "value": 15000, "weight": 3},
+            {"name": "200 звёзд", "emoji": "⭐", "value": 200, "weight": 34, "stars": True},
+            {"name": "400 звёзд", "emoji": "💫", "value": 400, "weight": 26, "stars": True},
+            {"name": "Signet Ring", "emoji": "💍", "value": 1000, "weight": 17},
+            {"name": "Neko Helmet", "emoji": "🐱", "value": 1300, "weight": 11},
+            {"name": "Scared Cat", "emoji": "🙀", "value": 2000, "weight": 7},
+            {"name": "Loot Bag", "emoji": "💰", "value": 2500, "weight": 4},
+            {"name": "Ion Gem", "emoji": "💎", "value": 3000, "weight": 1},
         ],
     },
-    "blackhole": {
-        "title": "Чёрная дыра",
-        "emoji": "🕳",
+    "legend": {
+        "title": "Легендарный",
+        "emoji": "💝",  # топ — Heart Locket
         "glow": "#ff6b6b",
-        "price": 5000,
+        "price": 3000,
         "items": [
-            {"name": "Туман", "emoji": "🌫", "value": 1000, "weight": 34},
-            {"name": "Вихрь", "emoji": "🌪", "value": 2000, "weight": 25},
-            {"name": "Дыра", "emoji": "🕳", "value": 4000, "weight": 18},
-            {"name": "Планета", "emoji": "🪐", "value": 8000, "weight": 13},
-            {"name": "Портал", "emoji": "🌀", "value": 15000, "weight": 8},
-            {"name": "Большой взрыв", "emoji": "💥", "value": 40000, "weight": 2},
+            {"name": "800 звёзд", "emoji": "💫", "value": 800, "weight": 80, "stars": True},
+            {"name": "1200 звёзд", "emoji": "💫", "value": 1200, "weight": 52, "stars": True},
+            {"name": "Astral Shard", "emoji": "🔷", "value": 4000, "weight": 30},
+            {"name": "Mini Oscar", "emoji": "🏆", "value": 5000, "weight": 22},
+            {"name": "Precious Peach", "emoji": "🍑", "value": 7000, "weight": 12},
+            {"name": "Durov's Cap", "emoji": "🧢", "value": 20000, "weight": 5},
+            {"name": "Heart Locket", "emoji": "💝", "value": 30000, "weight": 1},
         ],
     },
 }

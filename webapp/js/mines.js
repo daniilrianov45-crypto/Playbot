@@ -62,14 +62,14 @@ const Mines = (() => {
       if (r.status === "won") {  // открыты все безопасные
         showLayout(r.layout, -1);
         setBalance(r.balance);
-        setInfo(`🏆 Максимум! +${r.payout.toLocaleString("ru-RU")} 🪙`);
-        toast(`+${r.payout.toLocaleString("ru-RU")} 🪙 (×${r.multiplier})`, "win");
+        setInfo(`🏆 Максимум! +${r.payout.toLocaleString("ru-RU")} ⭐`);
+        toast(`+${r.payout.toLocaleString("ru-RU")} ⭐ (×${r.multiplier})`, "win");
         setTimeout(() => { buildGrid(); setInfo("Выбери ставку и число мин"); }, 2500);
         endRound();
         return;
       }
-      setInfo(`Сейчас: <b>×${r.multiplier}</b> (${r.cashout_value.toLocaleString("ru-RU")} 🪙) · дальше ×${r.next_multiplier}`);
-      btn.textContent = `Забрать ${r.cashout_value.toLocaleString("ru-RU")} 🪙`;
+      setInfo(`Сейчас: <b>×${r.multiplier}</b> (${r.cashout_value.toLocaleString("ru-RU")} ⭐) · дальше ×${r.next_multiplier}`);
+      btn.textContent = `Забрать ${r.cashout_value.toLocaleString("ru-RU")} ⭐`;
       btn.className = "big-btn cashout";
       btn.disabled = false;
     } catch (e) { toast(e.message, "lose"); }
@@ -83,7 +83,7 @@ const Mines = (() => {
         showLayout(r.layout, -1);
         setBalance(r.balance);
         setInfo(`✅ Забрано ×${r.multiplier}`);
-        toast(`+${r.payout.toLocaleString("ru-RU")} 🪙 (×${r.multiplier})`, "win");
+        toast(`+${r.payout.toLocaleString("ru-RU")} ⭐ (×${r.multiplier})`, "win");
         haptic("success");
         setTimeout(() => { buildGrid(); setInfo("Выбери ставку и число мин"); }, 2000);
         endRound();
@@ -122,8 +122,8 @@ const Mines = (() => {
         startUi(st.next_multiplier, st.revealed);
         if (st.revealed.length) {
           const val = Math.floor(st.bet * st.multiplier);
-          setInfo(`Сейчас: <b>×${st.multiplier}</b> (${val.toLocaleString("ru-RU")} 🪙) · дальше ×${st.next_multiplier}`);
-          btn.textContent = `Забрать ${val.toLocaleString("ru-RU")} 🪙`;
+          setInfo(`Сейчас: <b>×${st.multiplier}</b> (${val.toLocaleString("ru-RU")} ⭐) · дальше ×${st.next_multiplier}`);
+          btn.textContent = `Забрать ${val.toLocaleString("ru-RU")} ⭐`;
         }
       }
     } catch (e) {}
