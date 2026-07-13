@@ -60,6 +60,27 @@ function giftIconHTML(name, emoji, size, isGift) {
       {textContent:'${emoji}',style:'font-size:${Math.round(size * 0.85)}px;line-height:1'}))">`;
 }
 
+// Анимация подарка как в Telegram (Lottie/TGS из webapp/gifts/lottie/).
+// Если анимации нет — контейнер остаётся с картинкой/эмодзи.
+const _lottieOk = {};  // name -> true/false, чтобы не дёргать 404 повторно
+async function mountLottie(container, name, size) {
+  if (typeof lottie === "undefined" || _lottieOk[name] === false || !container) return;
+  const url = "gifts/lottie/" + encodeURIComponent(name) + ".json";
+  try {
+    if (_lottieOk[name] === undefined) {
+      const head = await fetch(url, { method: "HEAD" });
+      _lottieOk[name] = head.ok;
+      if (!head.ok) return;
+    }
+    const holder = document.createElement("div");
+    holder.style.cssText = `width:${size}px;height:${size}px;margin:0 auto`;
+    container.replaceChildren(holder);
+    lottie.loadAnimation({
+      container: holder, renderer: "svg", loop: true, autoplay: true, path: url,
+    });
+  } catch (e) { _lottieOk[name] = false; }
+}
+
 function readBet(input) {
   const v = parseInt(input.value);
   if (!v || v < CONFIG.min_bet) { toast(`Минимальная ставка ${CONFIG.min_bet}`); return null; }

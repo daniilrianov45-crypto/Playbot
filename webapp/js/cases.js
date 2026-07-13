@@ -47,7 +47,8 @@ const Cases = (() => {
       const priceHtml = c.price > 0
         ? `${c.price.toLocaleString("ru-RU")} ⭐`
         : (locked ? `⏳ ${fmtCooldown(c.cooldown_left)}` : "Бесплатно");
-      // иконка кейса — картинка самого дорогого подарка в нём (или эмодзи)
+      // иконка кейса — самый дорогой подарок в нём: анимация Lottie (как в TG),
+      // при её отсутствии картинка, при отсутствии картинки — эмодзи
       const topGift = c.items.filter((it) => !it.stars)
         .sort((a, b) => b.value - a.value)[0];
       const iconHtml = topGift
@@ -60,6 +61,7 @@ const Cases = (() => {
          <div class="price-pill ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
       card.addEventListener("click", () => open(c));
       listEl.appendChild(card);
+      if (topGift) mountLottie(card.querySelector(".icon"), topGift.name, 56);
     });
   }
 

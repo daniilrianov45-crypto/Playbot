@@ -522,3 +522,12 @@ nav {
 
 /* картинки подарков Telegram */
 .gift-img { object-fit: contain; vertical-align: middle; }
+
+/* лёгкое парение иконок кейсов (как подарки в TG) */
+.case-card .icon { animation: giftFloat 3.2s ease-in-out infinite; }
+.case-card:nth-child(even) .icon { animation-delay: -1.6s; }
+@keyframes giftFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) { .case-card .icon { animation: none; } }
