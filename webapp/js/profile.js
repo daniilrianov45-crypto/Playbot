@@ -24,7 +24,7 @@ const Profile = (() => {
       const el = document.createElement("div");
       el.className = "inv-item";
       el.innerHTML =
-        `<div class="i-emoji">${it.emoji}</div>
+        `<div class="i-emoji">${giftIconHTML(it.name, it.emoji, 40, true)}</div>
          <div class="i-name">${it.name}</div>
          <div class="i-value">${it.value.toLocaleString("ru-RU")} ⭐</div>
          <button>Продать</button>`;

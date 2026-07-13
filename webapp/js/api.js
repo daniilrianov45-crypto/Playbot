@@ -50,6 +50,16 @@ function bindQuickButtons(panel, input) {
   });
 }
 
+// Иконка предмета: для подарков Telegram — официальная картинка из webapp/gifts/,
+// с фолбэком на эмодзи, пока картинка не загружена на сервер.
+function giftIconHTML(name, emoji, size, isGift) {
+  if (!isGift) return `<span style="font-size:${size}px;line-height:1">${emoji}</span>`;
+  const src = "gifts/" + encodeURIComponent(name) + ".png";
+  return `<img class="gift-img" src="${src}" width="${size}" height="${size}" alt="${name}"
+    onerror="this.replaceWith(Object.assign(document.createElement('span'),
+      {textContent:'${emoji}',style:'font-size:${Math.round(size * 0.85)}px;line-height:1'}))">`;
+}
+
 function readBet(input) {
   const v = parseInt(input.value);
   if (!v || v < CONFIG.min_bet) { toast(`Минимальная ставка ${CONFIG.min_bet}`); return null; }

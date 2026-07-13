@@ -519,3 +519,6 @@ nav {
 .toast.win { border-color: var(--green); color: var(--green); }
 .toast.lose { border-color: var(--red); color: var(--red); }
 @keyframes pop { from { opacity: 0; transform: translate(-50%, -8px); } }
+
+/* картинки подарков Telegram */
+.gift-img { object-fit: contain; vertical-align: middle; }

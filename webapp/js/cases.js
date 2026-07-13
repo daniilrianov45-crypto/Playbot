@@ -47,9 +47,15 @@ const Cases = (() => {
       const priceHtml = c.price > 0
         ? `${c.price.toLocaleString("ru-RU")} ⭐`
         : (locked ? `⏳ ${fmtCooldown(c.cooldown_left)}` : "Бесплатно");
+      // иконка кейса — картинка самого дорогого подарка в нём (или эмодзи)
+      const topGift = c.items.filter((it) => !it.stars)
+        .sort((a, b) => b.value - a.value)[0];
+      const iconHtml = topGift
+        ? giftIconHTML(topGift.name, c.emoji, 56, true)
+        : `<span style="font-size:56px;line-height:1.2">${c.emoji}</span>`;
       card.innerHTML =
         `<div class="glow" style="background: radial-gradient(circle, ${c.glow}, transparent 70%)"></div>
-         <div class="icon" style="filter: drop-shadow(0 0 18px ${c.glow})">${c.emoji}</div>
+         <div class="icon" style="filter: drop-shadow(0 0 18px ${c.glow})">${iconHtml}</div>
          <div class="title">${c.title}</div>
          <div class="price-pill ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
       card.addEventListener("click", () => open(c));
@@ -88,7 +94,8 @@ const Cases = (() => {
     for (let i = 0; i < STRIP_LEN; i++) {
       const el = document.createElement("div");
       el.className = "strip-item";
-      el.textContent = (i === WIN_POS ? data.item : weightedRandomItem(c)).emoji;
+      const it = i === WIN_POS ? data.item : weightedRandomItem(c);
+      el.innerHTML = giftIconHTML(it.name, it.emoji, 42, !it.stars);
       stripEl.appendChild(el);
     }
 
@@ -109,7 +116,8 @@ const Cases = (() => {
         ? "Звёзды зачислены на баланс ✅"
         : "Подарок добавлен в инвентарь 🎒";
       resultEl.innerHTML =
-        `${it.emoji} <b>${it.name}</b> — <span class="value">${it.value.toLocaleString("ru-RU")} ⭐</span><br>
+        `${giftIconHTML(it.name, it.emoji, 24, !data.stars)} <b>${it.name}</b> —
+         <span class="value">${it.value.toLocaleString("ru-RU")} ⭐</span><br>
          <span style="font-size:13px;color:var(--muted)">${note}</span>`;
       haptic("success");
       backBtn.disabled = false;
