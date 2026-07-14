@@ -77,6 +77,12 @@
     else window.open(url, "_blank");
   });
 
+  // сплэш: подарки — официальные картинки/анимации TG (фолбэк — эмодзи)
+  document.querySelectorAll(".sp-card[data-gift]").forEach((card) => {
+    card.innerHTML = giftIconHTML(card.dataset.gift, card.dataset.emoji, 48, true);
+    mountLottie(card, card.dataset.gift, 52);
+  });
+
   // сплэш: держим минимум 1.2с, прячем после загрузки данных
   const splashShownAt = Date.now();
   function hideSplash() {

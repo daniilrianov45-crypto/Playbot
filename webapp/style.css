@@ -554,7 +554,9 @@ nav {
   animation: spFloat 4s ease-in-out infinite alternate;
   animation-delay: var(--d);
 }
-.sp-card span { filter: drop-shadow(0 0 16px var(--glow)); }
+.sp-card span, .sp-card img, .sp-card svg {
+  filter: drop-shadow(0 0 16px var(--glow));
+}
 @keyframes spFloat {
   from { transform: translateY(-8px) rotate(-3deg); }
   to { transform: translateY(10px) rotate(3deg); }
