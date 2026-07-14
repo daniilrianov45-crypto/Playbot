@@ -77,6 +77,18 @@
     else window.open(url, "_blank");
   });
 
+  // сплэш: держим минимум 1.2с, прячем после загрузки данных
+  const splashShownAt = Date.now();
+  function hideSplash() {
+    const wait = Math.max(0, 1200 - (Date.now() - splashShownAt));
+    setTimeout(() => {
+      const s = document.getElementById("splash");
+      if (!s) return;
+      s.classList.add("hide");
+      setTimeout(() => s.remove(), 700);
+    }, wait);
+  }
+
   // старт
   (async () => {
     try {
@@ -98,6 +110,8 @@
       Profile.loadReferral();
     } catch (e) {
       toast("Не удалось подключиться: " + e.message, "lose");
+    } finally {
+      hideSplash();
     }
   })();
 })();

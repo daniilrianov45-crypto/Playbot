@@ -531,3 +531,50 @@ nav {
   50% { transform: translateY(-6px); }
 }
 @media (prefers-reduced-motion: reduce) { .case-card .icon { animation: none; } }
+
+/* ---------- сплэш при входе ---------- */
+#splash {
+  position: fixed; inset: 0; z-index: 100; overflow: hidden;
+  background:
+    radial-gradient(130% 90% at 50% 0%, #1b47b8 0%, #0d2168 48%, #060b26 100%);
+  display: flex; align-items: center; justify-content: center;
+  transition: opacity .6s;
+}
+#splash.hide { opacity: 0; pointer-events: none; }
+.sp-card {
+  position: absolute; left: var(--x); top: var(--y);
+  width: 84px; height: 84px; border-radius: 22px;
+  background: rgba(255, 255, 255, .08);
+  border: 1px solid rgba(255, 255, 255, .18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 46px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .25);
+  animation: spFloat 4s ease-in-out infinite alternate;
+  animation-delay: var(--d);
+}
+.sp-card span { filter: drop-shadow(0 0 16px var(--glow)); }
+@keyframes spFloat {
+  from { transform: translateY(-8px) rotate(-3deg); }
+  to { transform: translateY(10px) rotate(3deg); }
+}
+.sp-center {
+  font-size: 84px; line-height: 1;
+  filter: drop-shadow(0 0 34px #5eb5f7);
+  animation: spPulse 1.6s ease-in-out infinite;
+}
+@keyframes spPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.12); }
+}
+.sp-spark {
+  position: absolute; color: #fff; opacity: .7; font-size: 14px;
+  animation: spTwinkle 2.2s ease-in-out infinite;
+}
+@keyframes spTwinkle {
+  50% { opacity: .15; transform: scale(.7); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sp-card, .sp-center, .sp-spark { animation: none; }
+}
