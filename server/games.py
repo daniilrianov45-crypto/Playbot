@@ -13,7 +13,7 @@ MAX_BET = 10_000
 
 # ---------------------------------------------------------------- краш
 
-CRASH_MAX_POINT = 100.0  # потолок множителя (защита казны от хвоста распределения)
+CRASH_MAX_POINT = 20.0  # потолок множителя (защита казны от хвоста распределения)
 
 
 def crash_point(r: float) -> float:
@@ -35,9 +35,9 @@ def crash_time_of(point: float) -> float:
 SLOT_SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "💎", "7️⃣"]
 SLOT_WEIGHTS = [30, 25, 18, 12, 10, 5]
 # выплаты за три одинаковых (множитель ставки)
-SLOT_TRIPLE_PAY = {"🍒": 6, "🍋": 9, "🔔": 18, "⭐": 25, "💎": 50, "7️⃣": 100}
-SLOT_TWO_CHERRIES_PAY = 2  # ровно две вишни
-# итоговый RTP ~89%, максимальный выигрыш x100
+SLOT_TRIPLE_PAY = {"🍒": 5, "🍋": 7, "🔔": 12, "⭐": 15, "💎": 20, "7️⃣": 30}
+SLOT_TWO_CHERRIES_PAY = 3  # ровно две вишни
+# итоговый RTP ~93%, максимальный выигрыш x30
 
 
 def _weighted_pick(r: float, symbols: list, weights: list):
@@ -77,7 +77,7 @@ def mines_layout(rolls: list[float], mines_count: int) -> list[int]:
     return sorted(cells[:mines_count])
 
 
-MINES_MAX_MULT = 100.0  # потолок множителя в минах
+MINES_MAX_MULT = 30.0  # потолок множителя в минах
 
 
 def mines_multiplier(mines_count: int, revealed: int) -> float:
