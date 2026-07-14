@@ -69,12 +69,14 @@
     } catch (e) { toast(e.message, "lose"); }
   });
 
-  // поддержка (вывод подарков)
-  document.getElementById("support-btn").addEventListener("click", () => {
-    if (!CONFIG.support) { toast("Поддержка появится после настройки бота"); return; }
-    const url = `https://t.me/${CONFIG.support}`;
-    if (tg?.openTelegramLink) tg.openTelegramLink(url);
-    else window.open(url, "_blank");
+  // кнопки «написать в поддержку» (вывод подарков, кэшбэк за неудачу)
+  document.querySelectorAll(".support-link").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!CONFIG.support) { toast("Поддержка появится после настройки бота"); return; }
+      const url = `https://t.me/${CONFIG.support}`;
+      if (tg?.openTelegramLink) tg.openTelegramLink(url);
+      else window.open(url, "_blank");
+    });
   });
 
   // сплэш: подарки — официальные картинки/анимации TG (фолбэк — эмодзи)
