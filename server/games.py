@@ -13,10 +13,13 @@ MAX_BET = 10_000
 
 # ---------------------------------------------------------------- краш
 
+CRASH_MAX_POINT = 100.0  # потолок множителя (защита казны от хвоста распределения)
+
+
 def crash_point(r: float) -> float:
-    """Точка взрыва: P(взрыв >= x) = (1 - edge) / x."""
+    """Точка взрыва: P(взрыв >= x) = (1 - edge) / x, с потолком."""
     point = (1 - HOUSE_EDGE) / (1 - r)
-    return max(1.0, math.floor(point * 100) / 100)
+    return min(CRASH_MAX_POINT, max(1.0, math.floor(point * 100) / 100))
 
 
 def crash_multiplier_at(elapsed_sec: float) -> float:
@@ -32,9 +35,9 @@ def crash_time_of(point: float) -> float:
 SLOT_SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "💎", "7️⃣"]
 SLOT_WEIGHTS = [30, 25, 18, 12, 10, 5]
 # выплаты за три одинаковых (множитель ставки)
-SLOT_TRIPLE_PAY = {"🍒": 5, "🍋": 8, "🔔": 15, "⭐": 40, "💎": 80, "7️⃣": 500}
+SLOT_TRIPLE_PAY = {"🍒": 6, "🍋": 9, "🔔": 18, "⭐": 25, "💎": 50, "7️⃣": 100}
 SLOT_TWO_CHERRIES_PAY = 2  # ровно две вишни
-# итоговый RTP ~93.7%
+# итоговый RTP ~89%, максимальный выигрыш x100
 
 
 def _weighted_pick(r: float, symbols: list, weights: list):
@@ -74,12 +77,15 @@ def mines_layout(rolls: list[float], mines_count: int) -> list[int]:
     return sorted(cells[:mines_count])
 
 
+MINES_MAX_MULT = 100.0  # потолок множителя в минах
+
+
 def mines_multiplier(mines_count: int, revealed: int) -> float:
-    """(1-edge) / P(открыть revealed безопасных ячеек подряд)."""
+    """(1-edge) / P(открыть revealed безопасных ячеек подряд), с потолком."""
     if revealed == 0:
         return 1.0
     fair = math.comb(MINES_GRID, revealed) / math.comb(MINES_GRID - mines_count, revealed)
-    return math.floor((1 - HOUSE_EDGE) * fair * 100) / 100
+    return min(MINES_MAX_MULT, math.floor((1 - HOUSE_EDGE) * fair * 100) / 100)
 
 # ---------------------------------------------------------------- кейсы
 
@@ -123,11 +129,11 @@ CASES = {
         "glow": "#8ab6ff",
         "price": 25,
         "items": [
-            {"name": "10 звёзд", "emoji": "⭐", "value": 10, "weight": 40, "stars": True},
-            {"name": "15 звёзд", "emoji": "⭐", "value": 15, "weight": 25, "stars": True},
+            {"name": "10 звёзд", "emoji": "⭐", "value": 10, "weight": 42, "stars": True},
+            {"name": "15 звёзд", "emoji": "⭐", "value": 15, "weight": 26, "stars": True},
             {"name": "25 звёзд", "emoji": "✨", "value": 25, "weight": 14, "stars": True},
-            {"name": "Lol Pop", "emoji": "🍭", "value": 40, "weight": 12},
-            {"name": "B-Day Candle", "emoji": "🕯", "value": 55, "weight": 6},
+            {"name": "Lol Pop", "emoji": "🍭", "value": 40, "weight": 10},
+            {"name": "B-Day Candle", "emoji": "🕯", "value": 55, "weight": 5},
             {"name": "Jelly Bunny", "emoji": "🐰", "value": 90, "weight": 3},
         ],
     },
@@ -137,12 +143,12 @@ CASES = {
         "glow": "#ff8ab6",
         "price": 60,
         "items": [
-            {"name": "20 звёзд", "emoji": "⭐", "value": 20, "weight": 34, "stars": True},
-            {"name": "40 звёзд", "emoji": "✨", "value": 40, "weight": 26, "stars": True},
+            {"name": "20 звёзд", "emoji": "⭐", "value": 20, "weight": 36, "stars": True},
+            {"name": "40 звёзд", "emoji": "✨", "value": 40, "weight": 27, "stars": True},
             {"name": "Candy Cane", "emoji": "🍬", "value": 45, "weight": 15},
-            {"name": "Homemade Cake", "emoji": "🍰", "value": 75, "weight": 13},
-            {"name": "Spiced Wine", "emoji": "🍷", "value": 110, "weight": 8},
-            {"name": "Snow Globe", "emoji": "❄️", "value": 190, "weight": 4},
+            {"name": "Homemade Cake", "emoji": "🍰", "value": 75, "weight": 11},
+            {"name": "Spiced Wine", "emoji": "🍷", "value": 110, "weight": 6},
+            {"name": "Snow Globe", "emoji": "❄️", "value": 190, "weight": 3},
             {"name": "Berry Box", "emoji": "🍓", "value": 300, "weight": 2},
         ],
     },
@@ -152,12 +158,12 @@ CASES = {
         "glow": "#ffe066",
         "price": 150,
         "items": [
-            {"name": "50 звёзд", "emoji": "⭐", "value": 50, "weight": 28, "stars": True},
-            {"name": "75 звёзд", "emoji": "✨", "value": 75, "weight": 22, "stars": True},
+            {"name": "50 звёзд", "emoji": "⭐", "value": 50, "weight": 30, "stars": True},
+            {"name": "75 звёзд", "emoji": "✨", "value": 75, "weight": 23, "stars": True},
             {"name": "100 звёзд", "emoji": "💫", "value": 100, "weight": 18, "stars": True},
-            {"name": "Snoop Dogg", "emoji": "🐶", "value": 150, "weight": 15},
+            {"name": "Snoop Dogg", "emoji": "🐶", "value": 150, "weight": 13},
             {"name": "Snoop Cigar", "emoji": "🚬", "value": 250, "weight": 9},
-            {"name": "Low Rider", "emoji": "🚗", "value": 400, "weight": 5},
+            {"name": "Low Rider", "emoji": "🚗", "value": 400, "weight": 4},
             {"name": "Westside Sign", "emoji": "🤟", "value": 700, "weight": 3},
         ],
     },
@@ -167,12 +173,12 @@ CASES = {
         "glow": "#7cf5a0",
         "price": 300,
         "items": [
-            {"name": "100 звёзд", "emoji": "⭐", "value": 100, "weight": 34, "stars": True},
-            {"name": "150 звёзд", "emoji": "✨", "value": 150, "weight": 25, "stars": True},
-            {"name": "Sakura Flower", "emoji": "🌸", "value": 300, "weight": 18},
-            {"name": "Kissed Frog", "emoji": "🐸", "value": 500, "weight": 12},
-            {"name": "Electric Skull", "emoji": "💀", "value": 700, "weight": 7},
-            {"name": "Genie Lamp", "emoji": "🪔", "value": 1200, "weight": 3},
+            {"name": "100 звёзд", "emoji": "⭐", "value": 100, "weight": 37, "stars": True},
+            {"name": "150 звёзд", "emoji": "✨", "value": 150, "weight": 26, "stars": True},
+            {"name": "Sakura Flower", "emoji": "🌸", "value": 300, "weight": 17},
+            {"name": "Kissed Frog", "emoji": "🐸", "value": 500, "weight": 11},
+            {"name": "Electric Skull", "emoji": "💀", "value": 700, "weight": 6},
+            {"name": "Genie Lamp", "emoji": "🪔", "value": 1200, "weight": 2},
             {"name": "Swiss Watch", "emoji": "⌚", "value": 1500, "weight": 1},
         ],
     },
@@ -182,12 +188,12 @@ CASES = {
         "glow": "#c86bff",
         "price": 800,
         "items": [
-            {"name": "200 звёзд", "emoji": "⭐", "value": 200, "weight": 34, "stars": True},
-            {"name": "400 звёзд", "emoji": "💫", "value": 400, "weight": 26, "stars": True},
-            {"name": "Signet Ring", "emoji": "💍", "value": 1000, "weight": 17},
-            {"name": "Neko Helmet", "emoji": "🐱", "value": 1300, "weight": 11},
-            {"name": "Scared Cat", "emoji": "🙀", "value": 2000, "weight": 7},
-            {"name": "Loot Bag", "emoji": "💰", "value": 2500, "weight": 4},
+            {"name": "200 звёзд", "emoji": "⭐", "value": 200, "weight": 38, "stars": True},
+            {"name": "400 звёзд", "emoji": "💫", "value": 400, "weight": 27, "stars": True},
+            {"name": "Signet Ring", "emoji": "💍", "value": 1000, "weight": 15},
+            {"name": "Neko Helmet", "emoji": "🐱", "value": 1300, "weight": 10},
+            {"name": "Scared Cat", "emoji": "🙀", "value": 2000, "weight": 6},
+            {"name": "Loot Bag", "emoji": "💰", "value": 2500, "weight": 3},
             {"name": "Ion Gem", "emoji": "💎", "value": 3000, "weight": 1},
         ],
     },
@@ -197,12 +203,12 @@ CASES = {
         "glow": "#ff6b6b",
         "price": 3000,
         "items": [
-            {"name": "800 звёзд", "emoji": "💫", "value": 800, "weight": 80, "stars": True},
-            {"name": "1200 звёзд", "emoji": "💫", "value": 1200, "weight": 52, "stars": True},
-            {"name": "Astral Shard", "emoji": "🔷", "value": 4000, "weight": 30},
-            {"name": "Mini Oscar", "emoji": "🏆", "value": 5000, "weight": 22},
-            {"name": "Precious Peach", "emoji": "🍑", "value": 7000, "weight": 12},
-            {"name": "Durov's Cap", "emoji": "🧢", "value": 20000, "weight": 5},
+            {"name": "800 звёзд", "emoji": "💫", "value": 800, "weight": 86, "stars": True},
+            {"name": "1200 звёзд", "emoji": "💫", "value": 1200, "weight": 55, "stars": True},
+            {"name": "Astral Shard", "emoji": "🔷", "value": 4000, "weight": 27},
+            {"name": "Mini Oscar", "emoji": "🏆", "value": 5000, "weight": 19},
+            {"name": "Precious Peach", "emoji": "🍑", "value": 7000, "weight": 10},
+            {"name": "Durov's Cap", "emoji": "🧢", "value": 20000, "weight": 4},
             {"name": "Heart Locket", "emoji": "💝", "value": 30000, "weight": 1},
         ],
     },
