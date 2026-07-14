@@ -35,9 +35,9 @@ def crash_time_of(point: float) -> float:
 SLOT_SYMBOLS = ["🍒", "🍋", "🔔", "⭐", "💎", "7️⃣"]
 SLOT_WEIGHTS = [30, 25, 18, 12, 10, 5]
 # выплаты за три одинаковых (множитель ставки)
-SLOT_TRIPLE_PAY = {"🍒": 5, "🍋": 7, "🔔": 12, "⭐": 15, "💎": 20, "7️⃣": 30}
-SLOT_TWO_CHERRIES_PAY = 3  # ровно две вишни
-# итоговый RTP ~93%, максимальный выигрыш x30
+SLOT_TRIPLE_PAY = {"🍒": 8, "🍋": 10, "🔔": 14, "⭐": 18, "💎": 22, "7️⃣": 30}
+SLOT_TWO_CHERRIES_PAY = 2  # ровно две вишни
+# итоговый RTP ~89%, максимальный выигрыш x30
 
 
 def _weighted_pick(r: float, symbols: list, weights: list):

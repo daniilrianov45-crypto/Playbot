@@ -28,13 +28,23 @@ const Cases = (() => {
        <div><div class="f-name">${f.name}</div>
        <div class="f-won">выиграл ${f.value.toLocaleString("ru-RU")} ⭐</div></div></div>`
     ).join("");
-    // дублируем контент для бесшовной бегущей строки
+    // дублируем контент для бесшовной бегущей строки;
+    // скорость постоянная независимо от числа записей
     feedEl.innerHTML = `<div class="ticker-track">${items}${items}</div>`;
+    feedEl.firstElementChild.style.animationDuration =
+      Math.max(20, feed.length * 3.2) + "s";
   }
 
   async function refreshFeed() {
     try { renderFeed((await API.call("feed")).feed); } catch (e) {}
   }
+
+  // лента обновляется, пока открыт экран кейсов
+  setInterval(() => {
+    if (document.getElementById("screen-cases").classList.contains("active")) {
+      refreshFeed();
+    }
+  }, 20000);
 
   async function load() {
     const data = await API.call("cases");

@@ -498,7 +498,7 @@ def case_mark_open(user_id: int, case_id: str) -> None:
 
 # ------------------------------------------------------------- лайв-лента
 
-def get_feed(limit: int = 10) -> list[dict]:
+def get_feed(limit: int = 30) -> list[dict]:
     """Последние выигрыши из кейсов по всем игрокам."""
     with _lock:
         rows = _conn.execute(
