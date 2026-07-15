@@ -64,10 +64,14 @@ const Cases = (() => {
       const iconHtml = topGift
         ? giftIconHTML(topGift.name, c.emoji, 56, true)
         : `<span style="font-size:56px;line-height:1.2">${c.emoji}</span>`;
+      // диапазон выигрыша: от минимального до максимального номинала в кейсе
+      const values = c.items.map((it) => it.value);
+      const range = `${Math.min(...values).toLocaleString("ru-RU")}–${Math.max(...values).toLocaleString("ru-RU")} ⭐`;
       card.innerHTML =
         `<div class="glow" style="background: radial-gradient(circle, ${c.glow}, transparent 70%)"></div>
          <div class="icon" style="filter: drop-shadow(0 0 18px ${c.glow})">${iconHtml}</div>
          <div class="title">${c.title}</div>
+         <div class="case-range">${range}</div>
          <div class="price-pill ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
       card.addEventListener("click", () => open(c));
       listEl.appendChild(card);
@@ -107,7 +111,8 @@ const Cases = (() => {
       const el = document.createElement("div");
       el.className = "strip-item";
       const it = i === WIN_POS ? data.item : weightedRandomItem(c);
-      el.innerHTML = giftIconHTML(it.name, it.emoji, 42, !it.stars);
+      el.innerHTML = giftIconHTML(it.name, it.emoji, 40, !it.stars) +
+        `<span class="strip-val">${it.value.toLocaleString("ru-RU")}⭐</span>`;
       stripEl.appendChild(el);
     }
 
@@ -127,10 +132,16 @@ const Cases = (() => {
       const note = data.stars
         ? "Звёзды зачислены на баланс ✅"
         : "Подарок добавлен в инвентарь 🎒";
+      const net = it.value - c.price;  // чистый плюс/минус за открытие
+      const netHtml = c.price > 0
+        ? `<div class="result-net ${net >= 0 ? "up" : "down"}">${net >= 0 ? "+" : ""}${net.toLocaleString("ru-RU")} ⭐ за открытие</div>`
+        : "";
       resultEl.innerHTML =
-        `${giftIconHTML(it.name, it.emoji, 24, !data.stars)} <b>${it.name}</b> —
-         <span class="value">${it.value.toLocaleString("ru-RU")} ⭐</span><br>
-         <span style="font-size:13px;color:var(--muted)">${note}</span>`;
+        `<div class="result-icon">${giftIconHTML(it.name, it.emoji, 56, !data.stars)}</div>
+         <div class="result-name">${it.name}</div>
+         <div class="result-value">${it.value.toLocaleString("ru-RU")} ⭐</div>
+         ${netHtml}
+         <div class="result-note">${note}</div>`;
       haptic("success");
       backBtn.disabled = false;
       busy = false;

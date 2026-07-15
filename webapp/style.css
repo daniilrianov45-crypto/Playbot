@@ -580,3 +580,15 @@ nav {
 @media (prefers-reduced-motion: reduce) {
   .sp-card, .sp-center, .sp-spark { animation: none; }
 }
+
+/* количество звёзд на рулетке и в результате */
+.strip-item { flex-direction: column; gap: 2px; }
+.strip-val { font-size: 11px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.case-range { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: -2px; }
+.result-icon { font-size: 56px; line-height: 1; }
+.result-name { font-size: 17px; font-weight: 800; margin-top: 6px; }
+.result-value { font-size: 22px; font-weight: 900; color: var(--gold); font-variant-numeric: tabular-nums; }
+.result-net { font-size: 13px; font-weight: 700; margin-top: 2px; }
+.result-net.up { color: var(--green); }
+.result-net.down { color: var(--muted); }
+.result-note { font-size: 13px; color: var(--muted); margin-top: 4px; }
