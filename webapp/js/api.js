@@ -60,6 +60,17 @@ function giftIconHTML(name, emoji, size, isGift) {
       {textContent:'${emoji}',style:'font-size:${Math.round(size * 0.85)}px;line-height:1'}))">`;
 }
 
+// Проигрывает Lottie-анимацию по прямому URL (для встроенных анимаций кейсов).
+function mountLottieUrl(container, url, size) {
+  if (typeof lottie === "undefined" || !container) return;
+  const holder = document.createElement("div");
+  holder.style.cssText = `width:${size}px;height:${size}px;margin:0 auto`;
+  container.replaceChildren(holder);
+  try {
+    lottie.loadAnimation({ container: holder, renderer: "svg", loop: true, autoplay: true, path: url });
+  } catch (e) {}
+}
+
 // Анимация подарка как в Telegram (Lottie/TGS из webapp/gifts/lottie/).
 // Если анимации нет — контейнер остаётся с картинкой/эмодзи.
 const _lottieOk = {};  // name -> true/false, чтобы не дёргать 404 повторно

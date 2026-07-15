@@ -183,6 +183,23 @@ CASES = {
             {"name": "Swiss Watch", "emoji": "⌚", "value": 1500, "weight": 1},
         ],
     },
+    "premium": {
+        "title": "Telegram Premium",
+        "emoji": "🌟",  # топ — Premium 12 месяцев
+        "glow": "#a56af7",
+        "anim": "premium-anim.json",  # анимированная иконка кейса
+        "price": 700,
+        # премиум-подписки: не звёзды -> падают в инвентарь, выдаёт поддержка.
+        # value в звёздах = реальная стоимость подарка Premium в Telegram.
+        "items": [
+            {"name": "300 звёзд", "emoji": "⭐", "value": 300, "weight": 40, "stars": True},
+            {"name": "500 звёзд", "emoji": "✨", "value": 500, "weight": 28, "stars": True},
+            {"name": "700 звёзд", "emoji": "💫", "value": 700, "weight": 15, "stars": True},
+            {"name": "Premium 1 месяц", "emoji": "🌟", "value": 400, "weight": 8},
+            {"name": "Premium 3 месяца", "emoji": "🌟", "value": 1000, "weight": 5},
+            {"name": "Premium 12 месяцев", "emoji": "🌟", "value": 2500, "weight": 4},
+        ],
+    },
     "cat": {
         "title": "Кот в шоке",
         "emoji": "💎",  # топ — Ion Gem

@@ -458,7 +458,7 @@ def api_cases(user: dict = Depends(current_user)):
     return {
         "cases": [
             {"id": cid, "title": c["title"], "emoji": c["emoji"],
-             "glow": c.get("glow", "#5eb5f7"),
+             "glow": c.get("glow", "#5eb5f7"), "anim": c.get("anim", ""),
              "price": c["price"], "cooldown": c.get("cooldown", 0),
              "cooldown_left": _case_cooldown_left(user["id"], cid, c),
              "items": c["items"]}

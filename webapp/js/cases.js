@@ -75,7 +75,10 @@ const Cases = (() => {
          <div class="price-pill ${c.price === 0 && !locked ? "free" : ""}">${priceHtml}</div>`;
       card.addEventListener("click", () => open(c));
       listEl.appendChild(card);
-      if (topGift) mountLottie(card.querySelector(".icon"), topGift.name, 56);
+      // анимированная иконка: сначала встроенная анимация кейса (c.anim),
+      // иначе — Lottie топ-подарка из webapp/gifts/lottie/
+      if (c.anim) mountLottieUrl(card.querySelector(".icon"), c.anim, 56);
+      else if (topGift) mountLottie(card.querySelector(".icon"), topGift.name, 56);
     });
   }
 
