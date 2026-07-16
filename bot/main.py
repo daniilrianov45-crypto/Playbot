@@ -44,8 +44,14 @@ async def cmd_start(message: Message):
     )
 
 
-def _is_admin(message: Message) -> bool:
+def _is_owner(message: Message) -> bool:
+    """Владелец из .env — только он назначает/снимает остальных админов."""
     return message.from_user.id == ADMIN_ID
+
+
+def _is_admin(message: Message) -> bool:
+    uid = message.from_user.id
+    return uid == ADMIN_ID or db.is_extra_admin(uid)
 
 
 async def _resolve(message: Message, who: str) -> dict | None:
@@ -55,10 +61,86 @@ async def _resolve(message: Message, who: str) -> dict | None:
     return user
 
 
+@dp.message(Command("addadmin"))
+async def cmd_addadmin(message: Message):
+    """Назначить админа: /addadmin <id или @username>.
+
+    Только владелец (ADMIN_ID из .env) может назначать — чтобы назначенный
+    админ не мог тайно добавить себе сообщников.
+    """
+    if not _is_owner(message):
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 2:
+        await message.answer("Формат: /addadmin @username или /addadmin 12345678")
+        return
+    who = parts[1].lstrip("@")
+    if who.isdigit():
+        new_id, username = int(who), ""
+        known = db.find_user(who)
+        if known:
+            username = known["username"]
+    else:
+        known = await _resolve(message, who)
+        if known is None:
+            return
+        new_id, username = known["id"], known["username"]
+    if new_id == ADMIN_ID:
+        await message.answer("Вы и так главный админ")
+        return
+    if db.add_admin(new_id, username, message.from_user.id):
+        await message.answer(
+            f"✅ Назначен админом: id {new_id}" + (f" (@{username})" if username else ""),
+        )
+    else:
+        await message.answer("Этот пользователь уже админ")
+
+
+@dp.message(Command("deladmin"))
+async def cmd_deladmin(message: Message):
+    """Снять админа: /deladmin <id или @username>. Только владелец."""
+    if not _is_owner(message):
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 2:
+        await message.answer("Формат: /deladmin @username или /deladmin 12345678")
+        return
+    who = parts[1].lstrip("@")
+    if who.isdigit():
+        target_id = int(who)
+    else:
+        known = await _resolve(message, who)
+        if known is None:
+            return
+        target_id = known["id"]
+    if db.remove_admin(target_id):
+        await message.answer(f"✅ Админ id {target_id} снят")
+    else:
+        await message.answer("Этот пользователь не в списке назначенных админов")
+
+
+@dp.message(Command("admins"))
+async def cmd_admins(message: Message):
+    """Список назначенных админов: /admins. Доступно любому админу."""
+    if not _is_admin(message):
+        return
+    admins = db.list_admins()
+    lines = [f"👑 Главный админ: id {ADMIN_ID} (владелец)"]
+    if admins:
+        lines.append("\n🛡 Назначенные админы:")
+        lines += [
+            f"  id {a['user_id']}" + (f" (@{a['username']})" if a["username"] else "")
+            for a in admins
+        ]
+    else:
+        lines.append("\nНазначенных админов пока нет")
+    await message.answer("\n".join(lines))
+
+
 @dp.message(Command("addpromo"))
 async def cmd_addpromo(message: Message):
     """Добавление промокода на лету: /addpromo КОД НАГРАДА АКТИВАЦИИ"""
-    if message.from_user.id != ADMIN_ID:
+    if not _is_admin(message):
         return  # молча игнорируем не-админов
     parts = (message.text or "").split()
     if len(parts) != 4 or not parts[2].isdigit() or not parts[3].isdigit():
@@ -183,17 +265,24 @@ async def cmd_admin(message: Message):
     """Список админ-команд: /admin"""
     if not _is_admin(message):
         return
-    await message.answer(
-        "🛠 <b>Админ-команды</b>\n\n"
-        "<code>/give @user 100</code> — начислить звёзды\n"
-        "<code>/take @user 50</code> — списать звёзды\n"
-        "<code>/gift @user 🐸 Kissed Frog 500</code> — выдать подарок\n"
-        "<code>/takegift @user Kissed Frog</code> — убрать подарок (после выдачи)\n"
-        "<code>/inv @user</code> — инвентарь и баланс игрока\n"
-        "<code>/addpromo КОД 500 100</code> — создать промокод\n"
+    lines = [
+        "🛠 <b>Админ-команды</b>\n",
+        "<code>/give @user 100</code> — начислить звёзды",
+        "<code>/take @user 50</code> — списать звёзды",
+        "<code>/gift @user 🐸 Kissed Frog 500</code> — выдать подарок",
+        "<code>/takegift @user Kissed Frog</code> — убрать подарок (после выдачи)",
+        "<code>/inv @user</code> — инвентарь и баланс игрока",
+        "<code>/addpromo КОД 500 100</code> — создать промокод",
         "<code>/stats</code> — статистика бота",
-        parse_mode="HTML",
-    )
+        "<code>/admins</code> — список назначенных админов",
+    ]
+    if _is_owner(message):
+        lines += [
+            "\n👑 <b>Только для владельца:</b>",
+            "<code>/addadmin @user</code> — назначить админа",
+            "<code>/deladmin @user</code> — снять админа",
+        ]
+    await message.answer("\n".join(lines), parse_mode="HTML")
 
 
 @dp.message(Command("inv"))
@@ -203,7 +292,7 @@ async def cmd_inv(message: Message):
     Показывает НАСТОЯЩИЙ инвентарь из базы — скриншоты игрока подделать можно,
     эту команду нельзя.
     """
-    if message.from_user.id != ADMIN_ID:
+    if not _is_admin(message):
         return
     parts = (message.text or "").split()
     if len(parts) != 2:

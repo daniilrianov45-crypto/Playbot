@@ -64,6 +64,12 @@ CREATE TABLE IF NOT EXISTS kv(
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS admins(
+    user_id INTEGER PRIMARY KEY,
+    username TEXT,
+    added_by INTEGER NOT NULL,
+    added_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS crash_rounds(
     round_id INTEGER PRIMARY KEY,
     point REAL NOT NULL,
@@ -304,6 +310,45 @@ def bot_stats() -> dict:
         ).fetchone()["s"]
     return {"users": users, "balance": balance, "gifts": gifts,
             "new_today": new_today, "bets_today": bets_today, "profit_today": pl}
+
+
+# ------------------------------------------------------------- доп. админы
+# ADMIN_ID из .env — главный админ (владелец), он всегда админ и не хранится
+# здесь. Эта таблица — только назначенные им дополнительные админы.
+
+def add_admin(user_id: int, username: str, added_by: int) -> bool:
+    with _lock:
+        try:
+            _conn.execute(
+                "INSERT INTO admins(user_id, username, added_by, added_at) VALUES(?,?,?,?)",
+                (user_id, username, added_by, int(time.time())),
+            )
+            _conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+
+def remove_admin(user_id: int) -> bool:
+    with _lock:
+        cur = _conn.execute("DELETE FROM admins WHERE user_id=?", (user_id,))
+        _conn.commit()
+        return cur.rowcount > 0
+
+
+def is_extra_admin(user_id: int) -> bool:
+    with _lock:
+        return _conn.execute(
+            "SELECT 1 FROM admins WHERE user_id=?", (user_id,)
+        ).fetchone() is not None
+
+
+def list_admins() -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT * FROM admins ORDER BY added_at"
+        ).fetchall()
+        return [dict(r) for r in rows]
 
 
 def find_user(query: str) -> dict | None:
