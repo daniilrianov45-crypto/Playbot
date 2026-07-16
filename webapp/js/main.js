@@ -116,6 +116,16 @@
       Cases.load();
       Profile.load();
       Profile.loadReferral();
+
+      // прямая ссылка на экран из бота, напр. ?screen=tasks
+      const screen = new URLSearchParams(location.search).get("screen");
+      if (screen && document.getElementById("screen-" + screen)) {
+        document.querySelectorAll(".nav-btn").forEach((b) => b.classList.remove("active"));
+        const navBtn = document.querySelector(`.nav-btn[data-screen="${screen}"]`);
+        if (navBtn) navBtn.classList.add("active");
+        showScreen(screen);
+        if (screen === "tasks") Tasks.load();
+      }
     } catch (e) {
       toast("Не удалось подключиться: " + e.message, "lose");
     } finally {

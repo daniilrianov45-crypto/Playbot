@@ -28,16 +28,22 @@ dp = Dispatcher()
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
+    name = message.from_user.first_name or "друг"
     kb = InlineKeyboardMarkup(
-        inline_keyboard=[[
-            InlineKeyboardButton(text="🎮 Играть", web_app=WebAppInfo(url=WEBAPP_URL))
-        ]]
+        inline_keyboard=[
+            [InlineKeyboardButton(text="🎮 Играть", web_app=WebAppInfo(url=WEBAPP_URL))],
+            [InlineKeyboardButton(
+                text="🎁 Как заработать звёзды",
+                web_app=WebAppInfo(url=WEBAPP_URL + "?screen=tasks"),
+            )],
+        ]
     )
     await message.answer(
+        f"👋 Привет, <b>{name}</b>!\n\n"
         "🚀 <b>PlayBot</b> — мини-игры с честной механикой!\n\n"
         "🎯 Краш, слоты, мины и кейсы с подарками Telegram\n"
         "🔍 Каждый результат можно проверить (provably fair)\n"
-        "🎁 Открой бесплатный кейс и получи первые звёзды!\n\n"
+        "🎁 Открой бесплатный кейс и выполняй задания — звёзды за это начисляются сразу\n\n"
         "Жми «Играть»!",
         reply_markup=kb,
         parse_mode="HTML",
