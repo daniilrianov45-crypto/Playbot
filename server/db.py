@@ -1,6 +1,7 @@
 """SQLite-хранилище: пользователи, сиды честности, активные игры, история."""
 import json
 import os
+import random
 import sqlite3
 import threading
 import time
@@ -312,6 +313,13 @@ def bot_stats() -> dict:
             "new_today": new_today, "bets_today": bets_today, "profit_today": pl}
 
 
+def all_user_ids() -> list[int]:
+    """Все id игроков — для рассылки."""
+    with _lock:
+        rows = _conn.execute("SELECT id FROM users").fetchall()
+    return [r["id"] for r in rows]
+
+
 # ------------------------------------------------------------- доп. админы
 # ADMIN_ID из .env — главный админ (владелец), он всегда админ и не хранится
 # здесь. Эта таблица — только назначенные им дополнительные админы.
@@ -591,8 +599,45 @@ def case_mark_open(user_id: int, case_id: str) -> None:
 
 # ------------------------------------------------------------- лайв-лента
 
+_FEED_FAKE_NAMES = [
+    "Александр", "Дмитрий", "Иван", "Максим", "Артём", "Данил", "Кирилл",
+    "Никита", "Егор", "Владислав", "Матвей", "Роман", "Тимур", "Богдан",
+    "София", "Анна", "Мария", "Полина", "Алина", "Ксения", "Виктория",
+    "Дарья", "Елизавета", "Милана", "Арина", "Camila", "Alex", "Ivan",
+]
+
+# кладём сюда только «нескучные» призы — мелкие звёзды в ленте не нужны
+_FEED_FAKE_POOL = [
+    {"item": "50 звёзд", "emoji": "✨", "value": 50},
+    {"item": "100 звёзд", "emoji": "✨", "value": 100},
+    {"item": "150 звёзд", "emoji": "💫", "value": 150},
+    {"item": "Jelly Bunny", "emoji": "🐰", "value": 90},
+    {"item": "Berry Box", "emoji": "🍓", "value": 300},
+    {"item": "Snoop Dogg", "emoji": "🐶", "value": 150},
+    {"item": "Sakura Flower", "emoji": "🌸", "value": 300},
+    {"item": "Kissed Frog", "emoji": "🐸", "value": 500},
+    {"item": "Premium 1 месяц", "emoji": "🌟", "value": 400},
+    {"item": "Premium 3 месяца", "emoji": "🌟", "value": 1000},
+    {"item": "300 звёзд", "emoji": "⭐", "value": 300},
+    {"item": "600 звёзд", "emoji": "✨", "value": 600},
+    {"item": "Signet Ring", "emoji": "💍", "value": 1000},
+    {"item": "Genie Lamp", "emoji": "🪔", "value": 1200},
+    {"item": "Swiss Watch", "emoji": "⌚", "value": 1500},
+]
+
+
+def _fake_feed_entry() -> dict:
+    return {"name": random.choice(_FEED_FAKE_NAMES), **random.choice(_FEED_FAKE_POOL)}
+
+
 def get_feed(limit: int = 30) -> list[dict]:
-    """Последние выигрыши из кейсов по всем игрокам."""
+    """Последние выигрыши из кейсов по всем игрокам.
+
+    Пока реальных открытий кейсов меньше limit, лента дополняется
+    сгенерированными записями (чтобы бегущая строка не выглядела пустой) —
+    настоящие выигрыши идут первыми и постепенно вытесняют фейковые по мере
+    роста активности.
+    """
     with _lock:
         rows = _conn.execute(
             "SELECT h.detail, u.first_name, u.username FROM history h"
@@ -609,4 +654,6 @@ def get_feed(limit: int = 30) -> list[dict]:
             "emoji": d.get("emoji", "🎁"),
             "value": d.get("value", 0),
         })
+    while len(out) < limit:
+        out.append(_fake_feed_entry())
     return out

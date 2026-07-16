@@ -270,6 +270,30 @@ async def cmd_stats(message: Message):
     )
 
 
+@dp.message(Command("broadcast"))
+async def cmd_broadcast(message: Message):
+    """Рассылка всем игрокам: /broadcast Текст сообщения"""
+    if not _is_admin(message):
+        return
+    text = (message.text or "").partition(" ")[2].strip()
+    if not text:
+        await message.answer("Формат: /broadcast Текст сообщения")
+        return
+    user_ids = db.all_user_ids()
+    status = await message.answer(f"⏳ Рассылка начата: {len(user_ids)} игроков...")
+    sent = failed = 0
+    for uid in user_ids:
+        try:
+            await message.bot.send_message(uid, text, parse_mode="HTML")
+            sent += 1
+        except Exception:
+            failed += 1
+        await asyncio.sleep(0.05)  # не упереться в лимиты Telegram (~20-30 сообщ/сек)
+    await status.edit_text(
+        f"✅ Рассылка завершена: доставлено {sent}, не доставлено {failed}"
+    )
+
+
 @dp.message(Command("admin", "help"))
 async def cmd_admin(message: Message):
     """Список админ-команд: /admin"""
@@ -283,6 +307,7 @@ async def cmd_admin(message: Message):
         "<code>/takegift @user Kissed Frog</code> — убрать подарок (после выдачи)",
         "<code>/inv @user</code> — инвентарь и баланс игрока",
         "<code>/addpromo КОД 500 100</code> — создать промокод",
+        "<code>/broadcast Текст</code> — разослать сообщение всем игрокам",
         "<code>/stats</code> — статистика бота",
         "<code>/admins</code> — список назначенных админов",
     ]
