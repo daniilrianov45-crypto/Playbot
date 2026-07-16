@@ -10,7 +10,7 @@ DB_PATH = os.environ.get(
     "DB_PATH", os.path.join(os.path.dirname(__file__), "..", "playbot.db")
 )
 
-START_BALANCE = 0  # новичок стартует с нуля (зарабатывает: кейсы, задания, рефералка)
+START_BALANCE = 100  # приветственный бонус новичку (звёзды — для азарта/развлечения, не имеют денежной ценности)
 
 _lock = threading.Lock()
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False)
