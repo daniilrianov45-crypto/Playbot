@@ -8,6 +8,7 @@ import os
 import sys
 
 from aiogram import Bot, Dispatcher
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
     InlineKeyboardButton,
@@ -22,6 +23,9 @@ from server import db  # noqa: E402  (общая база с API)
 BOT_TOKEN = os.environ.get("BOT_TOKEN", "")
 WEBAPP_URL = os.environ.get("WEBAPP_URL", "https://example.com")
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "0"))
+# Прокси для доступа к api.telegram.org, если хостинг блокирует прямое
+# подключение (напр. http://user:pass@host:port или socks5://host:port).
+BOT_PROXY = os.environ.get("BOT_PROXY", "").strip()
 
 dp = Dispatcher()
 
@@ -328,7 +332,8 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     if not BOT_TOKEN:
         raise SystemExit("Укажите BOT_TOKEN в переменных окружения (.env)")
-    bot = Bot(BOT_TOKEN)
+    session = AiohttpSession(proxy=BOT_PROXY) if BOT_PROXY else None
+    bot = Bot(BOT_TOKEN, session=session)
     await dp.start_polling(bot)
 
 
