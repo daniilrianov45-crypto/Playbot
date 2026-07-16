@@ -9,7 +9,7 @@ DB_PATH = os.environ.get(
     "DB_PATH", os.path.join(os.path.dirname(__file__), "..", "playbot.db")
 )
 
-START_BALANCE = 100  # стартовые звёзды новичку
+START_BALANCE = 0  # новичок стартует с нуля (зарабатывает: кейсы, задания, рефералка)
 
 _lock = threading.Lock()
 _conn = sqlite3.connect(DB_PATH, check_same_thread=False)
@@ -256,6 +256,54 @@ def add_history(user_id: int, game: str, bet: int, payout: int, detail: dict) ->
                         (commission, commission, ref),
                     )
         _conn.commit()
+
+
+def take_balance(user_id: int, amount: int) -> int | None:
+    """Списывает звёзды (не ниже нуля); None, если пользователя нет."""
+    with _lock:
+        row = _conn.execute("SELECT balance FROM users WHERE id=?", (user_id,)).fetchone()
+        if row is None:
+            return None
+        new_bal = max(0, row["balance"] - amount)
+        _conn.execute("UPDATE users SET balance=? WHERE id=?", (new_bal, user_id))
+        _conn.commit()
+        return new_bal
+
+
+def remove_inventory_by_name(user_id: int, name: str) -> dict | None:
+    """Удаляет один предмет по имени (для выдачи приза поддержкой)."""
+    with _lock:
+        row = _conn.execute(
+            "SELECT * FROM inventory WHERE user_id=? AND LOWER(name)=LOWER(?)"
+            " ORDER BY id LIMIT 1",
+            (user_id, name),
+        ).fetchone()
+        if row is None:
+            return None
+        _conn.execute("DELETE FROM inventory WHERE id=?", (row["id"],))
+        _conn.commit()
+        return dict(row)
+
+
+def bot_stats() -> dict:
+    with _lock:
+        users = _conn.execute("SELECT COUNT(*) AS c FROM users").fetchone()["c"]
+        balance = _conn.execute("SELECT COALESCE(SUM(balance),0) AS s FROM users").fetchone()["s"]
+        gifts = _conn.execute("SELECT COUNT(*) AS c FROM inventory").fetchone()["c"]
+        day_ago = int(time.time()) - 86400
+        new_today = _conn.execute(
+            "SELECT COUNT(*) AS c FROM users WHERE created_at>=?", (day_ago,)
+        ).fetchone()["c"]
+        bets_today = _conn.execute(
+            "SELECT COUNT(*) AS c FROM history WHERE created_at>=?", (day_ago,)
+        ).fetchone()["c"]
+        # прибыль площадки за сутки = ставки - выплаты
+        pl = _conn.execute(
+            "SELECT COALESCE(SUM(bet-payout),0) AS s FROM history WHERE created_at>=?",
+            (day_ago,),
+        ).fetchone()["s"]
+    return {"users": users, "balance": balance, "gifts": gifts,
+            "new_today": new_today, "bets_today": bets_today, "profit_today": pl}
 
 
 def find_user(query: str) -> dict | None:
