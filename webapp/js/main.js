@@ -23,6 +23,8 @@
         document.querySelector('.nav-btn[data-screen="cases"]').click();
         return;
       }
+      if (game === "exchange") Exchange.load();
+      if (game === "shop") Shop.load();
       showScreen(game);
     });
   });
@@ -125,6 +127,8 @@
         if (navBtn) navBtn.classList.add("active");
         showScreen(screen);
         if (screen === "tasks") Tasks.load();
+        if (screen === "exchange") Exchange.load();
+        if (screen === "shop") Shop.load();
       }
     } catch (e) {
       toast("Не удалось подключиться: " + e.message, "lose");

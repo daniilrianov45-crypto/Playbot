@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import db, fair, games
+from . import db, exchange, fair, games
 from .auth import validate_init_data
 
 app = FastAPI(title="PlayBot")
@@ -24,6 +24,7 @@ WEBAPP_DIR = os.path.join(os.path.dirname(__file__), "..", "webapp")
 
 BOT_USERNAME = os.environ.get("BOT_USERNAME", "")
 SUPPORT_USERNAME = os.environ.get("SUPPORT_USERNAME", "")
+EXCHANGE_USERNAME = os.environ.get("EXCHANGE_USERNAME", "")
 
 # ------------------------------------------------------------------ курс звезды
 # Ориентир — Fragment, где звёзды дешевле всего: ~$0.015 за 1⭐.
@@ -107,6 +108,7 @@ def api_init(user: dict = Depends(current_user)):
             "photo_url": user["photo_url"],
         },
         "balance": db.get_balance(user["id"]),
+        "exchange_balance": db.get_exchange_balance(user["id"]),
         "crash_history": db.last_crash_points(10),
         "feed": db.get_feed(),
         "fair": {
@@ -121,6 +123,7 @@ def api_init(user: dict = Depends(current_user)):
             "crash_growth": games.CRASH_GROWTH,
             "star_rate_rub": star_rate_rub(),
             "support": SUPPORT_USERNAME,
+            "exchange_account": EXCHANGE_USERNAME,
         },
     }
 
@@ -592,6 +595,75 @@ def api_referral(user: dict = Depends(current_user)):
 @app.get("/api/crash/history")
 def api_crash_history(user: dict = Depends(current_user)):
     return {"history": db.last_crash_points(10)}
+
+
+# ------------------------------------------------------------------ пункт обмена
+# Баллы обмена — отдельная валюта, не пересекается с игровым балансом:
+# начисляются только за реально переданные подарки, тратятся только в
+# магазине по фиксированной цене (без элемента случайности).
+
+@app.get("/api/exchange/catalog")
+def api_exchange_catalog():
+    return {
+        "account": EXCHANGE_USERNAME,
+        "items": [
+            {"name": name, "emoji": d["emoji"], "points": d["points"]}
+            for name, d in exchange.BUYBACK_CATALOG.items()
+        ],
+    }
+
+
+class ExchangeRequestBody(BaseModel):
+    gift_name: str
+
+
+@app.post("/api/exchange/request")
+def api_exchange_request(body: ExchangeRequestBody, user: dict = Depends(current_user)):
+    item = exchange.BUYBACK_CATALOG.get(body.gift_name)
+    if item is None:
+        raise HTTPException(400, "Такой подарок не принимается")
+    if not EXCHANGE_USERNAME:
+        raise HTTPException(400, "Приём подарков пока не настроен")
+    trade_id = db.create_trade_request(user["id"], body.gift_name, item["emoji"], item["points"])
+    return {"id": trade_id, "account": EXCHANGE_USERNAME, "points": item["points"]}
+
+
+@app.get("/api/exchange/mine")
+def api_exchange_mine(user: dict = Depends(current_user)):
+    return {
+        "balance": db.get_exchange_balance(user["id"]),
+        "trades": db.list_my_trades(user["id"]),
+    }
+
+
+@app.get("/api/shop/catalog")
+def api_shop_catalog():
+    return {
+        "items": [
+            {"name": name, "emoji": d["emoji"], "points": d["points"]}
+            for name, d in exchange.SHOP_CATALOG.items()
+        ]
+    }
+
+
+class ShopBuyBody(BaseModel):
+    item_name: str
+
+
+@app.post("/api/shop/buy")
+def api_shop_buy(body: ShopBuyBody, user: dict = Depends(current_user)):
+    item = exchange.SHOP_CATALOG.get(body.item_name)
+    if item is None:
+        raise HTTPException(400, "Такой позиции нет в магазине")
+    if not db.try_debit_exchange(user["id"], item["points"]):
+        raise HTTPException(400, "Недостаточно баллов обмена")
+    order_id = db.create_shop_order(user["id"], body.item_name, item["emoji"], item["points"])
+    return {"order_id": order_id, "balance": db.get_exchange_balance(user["id"])}
+
+
+@app.get("/api/shop/mine")
+def api_shop_mine(user: dict = Depends(current_user)):
+    return {"orders": db.list_my_shop_orders(user["id"])}
 
 
 # ------------------------------------------------------------------ статика

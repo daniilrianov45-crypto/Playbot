@@ -294,6 +294,116 @@ async def cmd_broadcast(message: Message):
     )
 
 
+@dp.message(Command("trades"))
+async def cmd_trades(message: Message):
+    """Заявки на обмен подарков, ждущие подтверждения: /trades"""
+    if not _is_admin(message):
+        return
+    pending = db.list_pending_trades()
+    if not pending:
+        await message.answer("Заявок на обмен нет")
+        return
+    lines = ["📥 <b>Заявки на обмен</b>\n"]
+    for t in pending:
+        who = f"@{t['username']}" if t["username"] else t["first_name"]
+        lines.append(
+            f"#{t['id']} · {t['emoji']} <b>{t['gift_name']}</b> · {t['points']} баллов"
+            f" · от {who} (id {t['user_id']})"
+        )
+    lines.append("\nПодтвердить: <code>/confirmtrade ID</code>")
+    lines.append("Отклонить: <code>/rejecttrade ID</code>")
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+async def _resolve_trade(message: Message, status: str, verb: str):
+    if not _is_admin(message):
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await message.answer(f"Формат: /{'confirmtrade' if status == 'confirmed' else 'rejecttrade'} ID")
+        return
+    trade = db.resolve_trade(int(parts[1]), status)
+    if trade is None:
+        await message.answer("Заявка не найдена или уже обработана")
+        return
+    await message.answer(
+        f"✅ Заявка #{trade['id']} ({trade['gift_name']}) — {verb}",
+    )
+    try:
+        if status == "confirmed":
+            await message.bot.send_message(
+                trade["user_id"],
+                f"✅ Подарок {trade['emoji']} <b>{trade['gift_name']}</b> получен, "
+                f"начислено <b>{trade['points']}</b> баллов обмена",
+                parse_mode="HTML",
+            )
+        else:
+            await message.bot.send_message(
+                trade["user_id"],
+                f"❌ Заявка на обмен {trade['emoji']} <b>{trade['gift_name']}</b> отклонена "
+                "(подарок не найден у поддержки — свяжитесь с ней)",
+                parse_mode="HTML",
+            )
+    except Exception:
+        pass
+
+
+@dp.message(Command("confirmtrade"))
+async def cmd_confirmtrade(message: Message):
+    """Подтвердить приём подарка и начислить баллы: /confirmtrade ID"""
+    await _resolve_trade(message, "confirmed", "подтверждена, баллы начислены")
+
+
+@dp.message(Command("rejecttrade"))
+async def cmd_rejecttrade(message: Message):
+    """Отклонить заявку на обмен: /rejecttrade ID"""
+    await _resolve_trade(message, "rejected", "отклонена")
+
+
+@dp.message(Command("orders"))
+async def cmd_orders(message: Message):
+    """Заказы из магазина, ждущие выдачи: /orders"""
+    if not _is_admin(message):
+        return
+    pending = db.list_pending_shop_orders()
+    if not pending:
+        await message.answer("Невыполненных заказов нет")
+        return
+    lines = ["🛍 <b>Заказы магазина</b>\n"]
+    for o in pending:
+        who = f"@{o['username']}" if o["username"] else o["first_name"]
+        lines.append(
+            f"#{o['id']} · {o['emoji']} <b>{o['item_name']}</b> · {o['points']} баллов"
+            f" · для {who} (id {o['user_id']})"
+        )
+    lines.append("\nПосле выдачи: <code>/fulfillorder ID</code>")
+    await message.answer("\n".join(lines), parse_mode="HTML")
+
+
+@dp.message(Command("fulfillorder"))
+async def cmd_fulfillorder(message: Message):
+    """Отметить заказ выполненным (после ручной выдачи): /fulfillorder ID"""
+    if not _is_admin(message):
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 2 or not parts[1].isdigit():
+        await message.answer("Формат: /fulfillorder ID")
+        return
+    order = db.resolve_shop_order(int(parts[1]))
+    if order is None:
+        await message.answer("Заказ не найден или уже выполнен")
+        return
+    await message.answer(f"✅ Заказ #{order['id']} ({order['item_name']}) отмечен выполненным")
+    try:
+        await message.bot.send_message(
+            order["user_id"],
+            f"🎉 Ваш заказ {order['emoji']} <b>{order['item_name']}</b> выполнен!",
+            parse_mode="HTML",
+        )
+    except Exception:
+        pass
+
+
 @dp.message(Command("admin", "help"))
 async def cmd_admin(message: Message):
     """Список админ-команд: /admin"""
@@ -308,6 +418,10 @@ async def cmd_admin(message: Message):
         "<code>/inv @user</code> — инвентарь и баланс игрока",
         "<code>/addpromo КОД 500 100</code> — создать промокод",
         "<code>/broadcast Текст</code> — разослать сообщение всем игрокам",
+        "<code>/trades</code> — заявки на обмен подарков",
+        "<code>/confirmtrade ID</code> / <code>/rejecttrade ID</code> — обработать заявку",
+        "<code>/orders</code> — заказы магазина, ждущие выдачи",
+        "<code>/fulfillorder ID</code> — отметить заказ выполненным",
         "<code>/stats</code> — статистика бота",
         "<code>/admins</code> — список назначенных админов",
     ]

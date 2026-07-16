@@ -105,6 +105,26 @@ CREATE TABLE IF NOT EXISTS history(
     detail TEXT NOT NULL,
     created_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS trade_requests(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    gift_name TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at INTEGER NOT NULL,
+    resolved_at INTEGER
+);
+CREATE TABLE IF NOT EXISTS shop_orders(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item_name TEXT NOT NULL,
+    emoji TEXT NOT NULL,
+    points INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at INTEGER NOT NULL,
+    resolved_at INTEGER
+);
 """
 with _lock:
     _conn.executescript(_SCHEMA)
@@ -112,6 +132,7 @@ with _lock:
         "ALTER TABLE users ADD COLUMN photo_url TEXT DEFAULT ''",
         "ALTER TABLE users ADD COLUMN referrer_id INTEGER",
         "ALTER TABLE users ADD COLUMN ref_earned INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN exchange_balance INTEGER NOT NULL DEFAULT 0",
     ):
         try:
             _conn.execute(migration)
@@ -657,3 +678,141 @@ def get_feed(limit: int = 30) -> list[dict]:
     while len(out) < limit:
         out.append(_fake_feed_entry())
     return out
+
+
+# ------------------------------------------------------------ пункт обмена
+# Баллы обмена — отдельная валюта от игровых звёзд (users.balance).
+# Начисляются только за реально принятые подарки, тратятся только в
+# магазине по фиксированной цене — в игры их поставить нельзя.
+
+def get_exchange_balance(user_id: int) -> int:
+    with _lock:
+        row = _conn.execute(
+            "SELECT exchange_balance FROM users WHERE id=?", (user_id,)
+        ).fetchone()
+    return row["exchange_balance"] if row else 0
+
+
+def credit_exchange(user_id: int, amount: int) -> int:
+    with _lock:
+        _conn.execute(
+            "UPDATE users SET exchange_balance = exchange_balance + ? WHERE id=?",
+            (amount, user_id),
+        )
+        _conn.commit()
+        row = _conn.execute(
+            "SELECT exchange_balance FROM users WHERE id=?", (user_id,)
+        ).fetchone()
+    return row["exchange_balance"]
+
+
+def try_debit_exchange(user_id: int, amount: int) -> bool:
+    with _lock:
+        row = _conn.execute(
+            "SELECT exchange_balance FROM users WHERE id=?", (user_id,)
+        ).fetchone()
+        if row is None or row["exchange_balance"] < amount:
+            return False
+        _conn.execute(
+            "UPDATE users SET exchange_balance = exchange_balance - ? WHERE id=?",
+            (amount, user_id),
+        )
+        _conn.commit()
+    return True
+
+
+def create_trade_request(user_id: int, gift_name: str, emoji: str, points: int) -> int:
+    with _lock:
+        cur = _conn.execute(
+            "INSERT INTO trade_requests(user_id, gift_name, emoji, points, created_at)"
+            " VALUES (?,?,?,?,?)",
+            (user_id, gift_name, emoji, points, int(time.time())),
+        )
+        _conn.commit()
+    return cur.lastrowid
+
+
+def list_my_trades(user_id: int, limit: int = 20) -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT * FROM trade_requests WHERE user_id=? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_pending_trades() -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT t.*, u.first_name, u.username FROM trade_requests t"
+            " JOIN users u ON u.id = t.user_id"
+            " WHERE t.status='pending' ORDER BY t.id"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def resolve_trade(trade_id: int, status: str) -> dict | None:
+    """status: 'confirmed' или 'rejected'. При confirmed баллы зачисляются."""
+    with _lock:
+        row = _conn.execute(
+            "SELECT * FROM trade_requests WHERE id=? AND status='pending'", (trade_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        _conn.execute(
+            "UPDATE trade_requests SET status=?, resolved_at=? WHERE id=?",
+            (status, int(time.time()), trade_id),
+        )
+        if status == "confirmed":
+            _conn.execute(
+                "UPDATE users SET exchange_balance = exchange_balance + ? WHERE id=?",
+                (row["points"], row["user_id"]),
+            )
+        _conn.commit()
+    return dict(row)
+
+
+def create_shop_order(user_id: int, item_name: str, emoji: str, points: int) -> int:
+    with _lock:
+        cur = _conn.execute(
+            "INSERT INTO shop_orders(user_id, item_name, emoji, points, created_at)"
+            " VALUES (?,?,?,?,?)",
+            (user_id, item_name, emoji, points, int(time.time())),
+        )
+        _conn.commit()
+    return cur.lastrowid
+
+
+def list_my_shop_orders(user_id: int, limit: int = 20) -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT * FROM shop_orders WHERE user_id=? ORDER BY id DESC LIMIT ?",
+            (user_id, limit),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def list_pending_shop_orders() -> list[dict]:
+    with _lock:
+        rows = _conn.execute(
+            "SELECT o.*, u.first_name, u.username FROM shop_orders o"
+            " JOIN users u ON u.id = o.user_id"
+            " WHERE o.status='pending' ORDER BY o.id"
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def resolve_shop_order(order_id: int) -> dict | None:
+    """Отмечает заказ выполненным (админ вручную выдал приз)."""
+    with _lock:
+        row = _conn.execute(
+            "SELECT * FROM shop_orders WHERE id=? AND status='pending'", (order_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        _conn.execute(
+            "UPDATE shop_orders SET status='fulfilled', resolved_at=? WHERE id=?",
+            (int(time.time()), order_id),
+        )
+        _conn.commit()
+    return dict(row)

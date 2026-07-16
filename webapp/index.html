@@ -59,6 +59,16 @@
         <div class="hub-title">Кейсы</div>
         <div class="hub-sub">Подарки внутри</div>
       </div>
+      <div class="hub-card" data-game="exchange">
+        <div class="hub-emoji">🔄</div>
+        <div class="hub-title">Обмен</div>
+        <div class="hub-sub">Подарок → баллы</div>
+      </div>
+      <div class="hub-card" data-game="shop">
+        <div class="hub-emoji">🛍</div>
+        <div class="hub-title">Магазин</div>
+        <div class="hub-sub">Баллы → призы</div>
+      </div>
     </div>
   </section>
 
@@ -167,6 +177,31 @@
     <div id="tasks-list" class="tasks-list"></div>
   </section>
 
+  <!-- ============================== ОБМЕН ПОДАРКОВ -->
+  <section id="screen-exchange" class="screen">
+    <div class="game-head">
+      <button class="back-btn" data-back>‹</button><span>Обмен подарков</span>
+    </div>
+    <div class="exch-balance chip">💠 <span id="exch-balance">0</span> баллов обмена</div>
+    <div class="tasks-sub">Сдай ненужный подарок Telegram — получи баллы обмена.
+      Трать их в Магазине на конкретные вещи (без рандома).</div>
+    <div id="exchange-list" class="exchange-list"></div>
+    <h3 class="inv-title">Мои заявки</h3>
+    <div id="exchange-mine" class="exchange-list"></div>
+  </section>
+
+  <!-- ============================== МАГАЗИН -->
+  <section id="screen-shop" class="screen">
+    <div class="game-head">
+      <button class="back-btn" data-back>‹</button><span>Магазин</span>
+    </div>
+    <div class="exch-balance chip">💠 <span id="shop-balance">0</span> баллов обмена</div>
+    <div class="tasks-sub">Гарантированный обмен баллов на конкретную вещь — без случайности.</div>
+    <div id="shop-list" class="exchange-list"></div>
+    <h3 class="inv-title">Мои заказы</h3>
+    <div id="shop-mine" class="exchange-list"></div>
+  </section>
+
   <!-- ============================== ПРОФИЛЬ -->
   <section id="screen-profile" class="screen">
     <div class="profile-head">
@@ -269,6 +304,22 @@
   </div>
 </div>
 
+<!-- модалка обмена подарка -->
+<div id="exchange-modal" class="modal hidden">
+  <div class="modal-box">
+    <h3>🔄 Обмен подарка</h3>
+    <p class="fair-text">
+      Переведите подарок <b id="exch-modal-name">…</b> пользователю
+      <code id="exch-modal-account">…</code> (в приложении Telegram:
+      Подарки → выбрать подарок → Передать), затем нажмите кнопку ниже.
+      Мы проверим получение вручную и начислим
+      <b id="exch-modal-points">…</b> баллов обмена.
+    </p>
+    <button id="exch-modal-confirm" class="big-btn">Я отправил(а) подарок</button>
+    <button id="exch-modal-close" class="big-btn secondary">Отмена</button>
+  </div>
+</div>
+
 <div id="toast" class="toast hidden"></div>
 
 <script src="js/lottie.min.js"></script>
@@ -279,6 +330,7 @@
 <script src="js/mines.js"></script>
 <script src="js/cases.js"></script>
 <script src="js/tasks.js"></script>
+<script src="js/exchange.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/main.js"></script>
 </body>
