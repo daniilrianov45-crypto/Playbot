@@ -706,6 +706,20 @@ def credit_exchange(user_id: int, amount: int) -> int:
     return row["exchange_balance"]
 
 
+def take_exchange(user_id: int, amount: int) -> int | None:
+    """Списывает баллы обмена (не ниже нуля); None, если пользователя нет."""
+    with _lock:
+        row = _conn.execute(
+            "SELECT exchange_balance FROM users WHERE id=?", (user_id,)
+        ).fetchone()
+        if row is None:
+            return None
+        new_bal = max(0, row["exchange_balance"] - amount)
+        _conn.execute("UPDATE users SET exchange_balance=? WHERE id=?", (new_bal, user_id))
+        _conn.commit()
+        return new_bal
+
+
 def try_debit_exchange(user_id: int, amount: int) -> bool:
     with _lock:
         row = _conn.execute(

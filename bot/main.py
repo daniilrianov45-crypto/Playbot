@@ -246,6 +246,44 @@ async def cmd_take(message: Message):
     )
 
 
+@dp.message(Command("givepoints"))
+async def cmd_givepoints(message: Message):
+    """Начислить баллы обмена: /givepoints <id или @username> <кол-во>"""
+    if not _is_admin(message):
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 3 or not parts[2].lstrip("-").isdigit():
+        await message.answer("Формат: /givepoints @username 100")
+        return
+    user = await _resolve(message, parts[1])
+    if user is None:
+        return
+    bal = db.credit_exchange(user["id"], int(parts[2]))
+    await message.answer(
+        f"✅ Начислено <b>{parts[2]}</b> 💠 игроку {user['first_name']}\n"
+        f"Баллы обмена: <b>{bal}</b> 💠", parse_mode="HTML",
+    )
+
+
+@dp.message(Command("takepoints"))
+async def cmd_takepoints(message: Message):
+    """Списать баллы обмена: /takepoints <id или @username> <кол-во>"""
+    if not _is_admin(message):
+        return
+    parts = (message.text or "").split()
+    if len(parts) != 3 or not parts[2].isdigit():
+        await message.answer("Формат: /takepoints @username 50")
+        return
+    user = await _resolve(message, parts[1])
+    if user is None:
+        return
+    bal = db.take_exchange(user["id"], int(parts[2]))
+    await message.answer(
+        f"✅ Списано <b>{parts[2]}</b> 💠 у игрока {user['first_name']}\n"
+        f"Баллы обмена: <b>{bal}</b> 💠", parse_mode="HTML",
+    )
+
+
 @dp.message(Command("gift"))
 async def cmd_gift(message: Message):
     """Выдать подарок в инвентарь: /gift <id или @username> <emoji> <название> <цена>
@@ -451,6 +489,8 @@ async def cmd_admin(message: Message):
         "🛠 <b>Админ-команды</b>\n",
         "<code>/give @user 100</code> — начислить звёзды",
         "<code>/take @user 50</code> — списать звёзды",
+        "<code>/givepoints @user 100</code> — начислить баллы обмена",
+        "<code>/takepoints @user 50</code> — списать баллы обмена",
         "<code>/gift @user 🐸 Kissed Frog 500</code> — выдать подарок",
         "<code>/takegift @user Kissed Frog</code> — убрать подарок (после выдачи)",
         "<code>/inv @user</code> — инвентарь и баланс игрока",
