@@ -7,10 +7,11 @@ import logging
 import os
 import sys
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, F
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command, CommandStart
 from aiogram.types import (
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
@@ -29,6 +30,31 @@ BOT_PROXY = os.environ.get("BOT_PROXY", "").strip()
 
 dp = Dispatcher()
 
+TERMS_TEXT = (
+    "📜 <b>Условия использования PlayBot</b>\n\n"
+    "🎮 PlayBot — развлекательное мини-приложение в Telegram (краш, слоты, "
+    "мины, кейсы). Элементы случайности используются исключительно "
+    "в развлекательных целях.\n\n"
+    "⭐ <b>Звёзды в приложении</b> — внутренняя игровая валюта. Они "
+    "<b>не имеют денежного эквивалента</b> и не подлежат выводу на карту, "
+    "счёт или обмену на реальные деньги. Пополнение баланса за реальные "
+    "деньги отсутствует — звёзды начисляются только бесплатно: "
+    "ежедневный кейс, задания, промокоды, реферальная программа.\n\n"
+    "🔍 <b>Честная игра (provably fair)</b> — хэш серверного сида "
+    "публикуется до игры, результат нельзя подменить задним числом; "
+    "историю можно проверить после смены сида.\n\n"
+    "🔄 <b>Обмен подарков</b> — вы можете передать свой подарок Telegram "
+    "аккаунту поддержки и получить баллы обмена по фиксированному, заранее "
+    "известному курсу. Баллы обмена — отдельная валюта от игровых звёзд, "
+    "тратится только в Магазине на конкретные позиции по фиксированной "
+    "цене и <b>не участвует в играх</b>. Начисление баллов происходит "
+    "после ручной проверки поддержкой.\n\n"
+    "🔞 Приложение предназначено для лиц старше 18 лет.\n\n"
+    "⚠️ Использование бота означает согласие с этими условиями. "
+    "Администрация вправе изменять баланс/начисления при выявлении "
+    "накрутки, багов или мошенничества."
+)
+
 
 @dp.message(CommandStart())
 async def cmd_start(message: Message):
@@ -40,6 +66,11 @@ async def cmd_start(message: Message):
                 text="🎁 Как заработать звёзды",
                 web_app=WebAppInfo(url=WEBAPP_URL + "?screen=tasks"),
             )],
+            [InlineKeyboardButton(
+                text="🔄 Обмен подарков",
+                web_app=WebAppInfo(url=WEBAPP_URL + "?screen=exchange"),
+            )],
+            [InlineKeyboardButton(text="📜 Условия использования", callback_data="terms")],
         ]
     )
     await message.answer(
@@ -47,11 +78,18 @@ async def cmd_start(message: Message):
         "🚀 <b>PlayBot</b> — мини-игры с честной механикой!\n\n"
         "🎯 Краш, слоты, мины и кейсы с подарками Telegram\n"
         "🔍 Каждый результат можно проверить (provably fair)\n"
-        "🎁 Открой бесплатный кейс и выполняй задания — звёзды за это начисляются сразу\n\n"
+        "🎁 Открой бесплатный кейс и выполняй задания — звёзды за это начисляются сразу\n"
+        "🔄 Есть ненужный подарок? Обменяй его на баллы в разделе «Обмен»\n\n"
         "Жми «Играть»!",
         reply_markup=kb,
         parse_mode="HTML",
     )
+
+
+@dp.callback_query(F.data == "terms")
+async def cb_terms(callback: CallbackQuery):
+    await callback.message.answer(TERMS_TEXT, parse_mode="HTML")
+    await callback.answer()
 
 
 def _is_owner(message: Message) -> bool:
