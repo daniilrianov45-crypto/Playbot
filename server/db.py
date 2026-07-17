@@ -765,25 +765,30 @@ def list_pending_trades() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def resolve_trade(trade_id: int, status: str) -> dict | None:
-    """status: 'confirmed' или 'rejected'. При confirmed баллы зачисляются."""
+def resolve_trade(trade_id: int, status: str, points_override: int | None = None) -> dict | None:
+    """status: 'confirmed' или 'rejected'. При confirmed баллы зачисляются.
+
+    points_override — цена, назначенная админом вручную (для заявок "другой
+    подарок" вне прайс-листа, у которых points=0 при создании).
+    """
     with _lock:
         row = _conn.execute(
             "SELECT * FROM trade_requests WHERE id=? AND status='pending'", (trade_id,)
         ).fetchone()
         if row is None:
             return None
+        points = points_override if points_override is not None else row["points"]
         _conn.execute(
-            "UPDATE trade_requests SET status=?, resolved_at=? WHERE id=?",
-            (status, int(time.time()), trade_id),
+            "UPDATE trade_requests SET status=?, points=?, resolved_at=? WHERE id=?",
+            (status, points, int(time.time()), trade_id),
         )
         if status == "confirmed":
             _conn.execute(
                 "UPDATE users SET exchange_balance = exchange_balance + ? WHERE id=?",
-                (row["points"], row["user_id"]),
+                (points, row["user_id"]),
             )
         _conn.commit()
-    return dict(row)
+    return {**dict(row), "points": points}
 
 
 def create_shop_order(user_id: int, item_name: str, emoji: str, points: int) -> int:

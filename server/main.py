@@ -628,6 +628,22 @@ def api_exchange_request(body: ExchangeRequestBody, user: dict = Depends(current
     return {"id": trade_id, "account": EXCHANGE_USERNAME, "points": item["points"]}
 
 
+class ExchangeCustomBody(BaseModel):
+    gift_name: str
+
+
+@app.post("/api/exchange/custom")
+def api_exchange_custom(body: ExchangeCustomBody, user: dict = Depends(current_user)):
+    """Подарка нет в прайс-листе — заявка уходит админу без назначенной цены."""
+    name = body.gift_name.strip()
+    if not name:
+        raise HTTPException(400, "Укажите название подарка")
+    if not EXCHANGE_USERNAME:
+        raise HTTPException(400, "Приём подарков пока не настроен")
+    trade_id = db.create_trade_request(user["id"], name, "🎁", 0)
+    return {"id": trade_id, "account": EXCHANGE_USERNAME}
+
+
 @app.get("/api/exchange/mine")
 def api_exchange_mine(user: dict = Depends(current_user)):
     return {

@@ -8,6 +8,7 @@ const Exchange = (() => {
   let catalog = [];
   let account = "";
   let selected = null;
+  let customName = null;
 
   const STATUS_LABEL = { pending: "⏳ на проверке", confirmed: "✅ начислено", rejected: "❌ отклонено" };
 
@@ -42,10 +43,20 @@ const Exchange = (() => {
 
   function openModal(name) {
     selected = catalog.find((i) => i.name === name);
+    customName = null;
     if (!selected) return;
     document.getElementById("exch-modal-name").textContent = selected.name;
     document.getElementById("exch-modal-account").textContent = "@" + account;
     document.getElementById("exch-modal-points").textContent = selected.points.toLocaleString("ru-RU");
+    modal.classList.remove("hidden");
+  }
+
+  function openCustomModal(name) {
+    selected = null;
+    customName = name;
+    document.getElementById("exch-modal-name").textContent = name;
+    document.getElementById("exch-modal-account").textContent = "@" + account;
+    document.getElementById("exch-modal-points").textContent = "будет назначено после проверки";
     modal.classList.remove("hidden");
   }
 
@@ -54,13 +65,25 @@ const Exchange = (() => {
   });
 
   document.getElementById("exch-modal-confirm").addEventListener("click", async () => {
-    if (!selected) return;
+    if (!selected && !customName) return;
     try {
-      await API.call("exchange/request", { gift_name: selected.name });
+      if (customName) {
+        await API.call("exchange/custom", { gift_name: customName });
+        document.getElementById("exch-custom-input").value = "";
+      } else {
+        await API.call("exchange/request", { gift_name: selected.name });
+      }
       modal.classList.add("hidden");
       toast("Заявка создана — ждите подтверждения поддержки", "win");
       load();
     } catch (e) { toast(e.message, "lose"); }
+  });
+
+  document.getElementById("exch-custom-btn").addEventListener("click", () => {
+    const name = document.getElementById("exch-custom-input").value.trim();
+    if (!name) { toast("Введите название подарка"); return; }
+    if (!account) { toast("Приём подарков временно недоступен", "lose"); return; }
+    openCustomModal(name);
   });
 
   async function load() {

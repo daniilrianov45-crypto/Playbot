@@ -381,11 +381,13 @@ async def cmd_trades(message: Message):
     lines = ["📥 <b>Заявки на обмен</b>\n"]
     for t in pending:
         who = f"@{t['username']}" if t["username"] else t["first_name"]
+        price = f"{t['points']} баллов" if t["points"] else "цена не назначена (другой подарок)"
         lines.append(
-            f"#{t['id']} · {t['emoji']} <b>{t['gift_name']}</b> · {t['points']} баллов"
+            f"#{t['id']} · {t['emoji']} <b>{t['gift_name']}</b> · {price}"
             f" · от {who} (id {t['user_id']})"
         )
     lines.append("\nПодтвердить: <code>/confirmtrade ID</code>")
+    lines.append("Подтвердить со своей ценой: <code>/confirmtrade ID баллы</code>")
     lines.append("Отклонить: <code>/rejecttrade ID</code>")
     await message.answer("\n".join(lines), parse_mode="HTML")
 
@@ -394,10 +396,21 @@ async def _resolve_trade(message: Message, status: str, verb: str):
     if not _is_admin(message):
         return
     parts = (message.text or "").split()
-    if len(parts) != 2 or not parts[1].isdigit():
-        await message.answer(f"Формат: /{'confirmtrade' if status == 'confirmed' else 'rejecttrade'} ID")
+    cmd_name = "confirmtrade" if status == "confirmed" else "rejecttrade"
+    if len(parts) not in (2, 3) or not parts[1].isdigit() or (len(parts) == 3 and not parts[2].isdigit()):
+        await message.answer(f"Формат: /{cmd_name} ID" + (" [баллы]" if status == "confirmed" else ""))
         return
-    trade = db.resolve_trade(int(parts[1]), status)
+    override = int(parts[2]) if len(parts) == 3 else None
+    trade_id = int(parts[1])
+    if status == "confirmed":
+        current = next((t for t in db.list_pending_trades() if t["id"] == trade_id), None)
+        if current and current["points"] == 0 and override is None:
+            await message.answer(
+                f"У заявки #{trade_id} не назначена цена (это «другой подарок»). "
+                f"Подтвердите с суммой: /confirmtrade {trade_id} баллы"
+            )
+            return
+    trade = db.resolve_trade(trade_id, status, override)
     if trade is None:
         await message.answer("Заявка не найдена или уже обработана")
         return
