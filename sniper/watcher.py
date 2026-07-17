@@ -91,11 +91,13 @@ async def _cycle(app: Client, bot: Bot, conn: sqlite3.Connection, token: str) ->
     cursor = ""
     for _ in range(PAGES_PER_CYCLE):
         try:
-            data = mrkt_client.fetch_saling(token, count=PAGE_COUNT, cursor=cursor, ordering=None)
+            data = mrkt_client.fetch_saling(token, count=PAGE_COUNT, cursor=cursor,
+                                             ordering="Price", low_to_high=True)
         except Exception as e:
             if "401" in str(e):
                 token = await mrkt_client.get_token(app)
-                data = mrkt_client.fetch_saling(token, count=PAGE_COUNT, cursor=cursor, ordering=None)
+                data = mrkt_client.fetch_saling(token, count=PAGE_COUNT, cursor=cursor,
+                                             ordering="Price", low_to_high=True)
             else:
                 raise
         gifts = data.get("gifts", [])
