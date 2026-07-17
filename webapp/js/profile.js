@@ -73,7 +73,7 @@ const Profile = (() => {
 
   document.getElementById("ref-share").addEventListener("click", () => {
     if (!refLink) { toast("Ссылка появится после настройки бота"); return; }
-    const text = "Играй со мной в PlayBot — получишь 50 звёзд на старте! 🎁";
+    const text = "Играй со мной в GiftSwap — получишь 50 звёзд на старте! 🎁";
     const url = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${encodeURIComponent(text)}`;
     if (tg?.openTelegramLink) tg.openTelegramLink(url);
     else window.open(url, "_blank");

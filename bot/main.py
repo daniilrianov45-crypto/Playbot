@@ -1,4 +1,4 @@
-"""Telegram-бот: кнопка для открытия мини-аппа PlayBot.
+"""Telegram-бот: кнопка для открытия мини-аппа GiftSwap.
 
 Запуск:  python -m bot.main
 """
@@ -31,8 +31,8 @@ BOT_PROXY = os.environ.get("BOT_PROXY", "").strip()
 dp = Dispatcher()
 
 TERMS_TEXT = (
-    "📜 <b>Условия использования PlayBot</b>\n\n"
-    "🔄 <b>Обмен подарков — основная функция PlayBot.</b> Вы можете передать "
+    "📜 <b>Условия использования GiftSwap</b>\n\n"
+    "🔄 <b>Обмен подарков — основная функция GiftSwap.</b> Вы можете передать "
     "свой ненужный подарок Telegram аккаунту поддержки и получить баллы "
     "обмена по фиксированному, заранее известному курсу. Баллы обмена "
     "тратятся в Магазине на конкретные позиции (звёзды Telegram, Premium) "
@@ -74,7 +74,7 @@ async def cmd_start(message: Message):
     )
     await message.answer(
         f"👋 Привет, <b>{name}</b>!\n\n"
-        "🚀 <b>PlayBot</b> — мини-игры с честной механикой!\n\n"
+        "🚀 <b>GiftSwap</b> — мини-игры с честной механикой!\n\n"
         "🎯 Краш, слоты, мины и кейсы с подарками Telegram\n"
         "🔍 Каждый результат можно проверить (provably fair)\n"
         "🎁 Открой бесплатный кейс и выполняй задания — звёзды за это начисляются сразу\n"
@@ -334,7 +334,7 @@ async def cmd_stats(message: Message):
         return
     s = db.bot_stats()
     await message.answer(
-        "📊 <b>Статистика PlayBot</b>\n\n"
+        "📊 <b>Статистика GiftSwap</b>\n\n"
         f"👥 Игроков всего: <b>{s['users']}</b>\n"
         f"🆕 Новых за сутки: <b>{s['new_today']}</b>\n"
         f"⭐ Звёзд на балансах: <b>{s['balance']}</b>\n"

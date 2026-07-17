@@ -21,7 +21,7 @@ const Cases = (() => {
 
   function renderFeed(feed) {
     if (!feed || !feed.length) {
-      feed = [{ name: "PlayBot", item: "", emoji: "✨", value: 0 }];
+      feed = [{ name: "GiftSwap", item: "", emoji: "✨", value: 0 }];
     }
     const items = feed.map((f) =>
       `<div class="feed-item"><div class="f-emoji">${f.emoji}</div>

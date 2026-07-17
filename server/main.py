@@ -1,4 +1,4 @@
-"""PlayBot API: краш, слоты, мины, кейсы + provably fair.
+"""GiftSwap API: краш, слоты, мины, кейсы + provably fair.
 
 Запуск:  uvicorn server.main:app --host 0.0.0.0 --port 8080
 """
@@ -15,7 +15,7 @@ from pydantic import BaseModel
 from . import db, exchange, fair, games
 from .auth import validate_init_data
 
-app = FastAPI(title="PlayBot")
+app = FastAPI(title="GiftSwap")
 
 WEBAPP_DIR = os.path.join(os.path.dirname(__file__), "..", "webapp")
 
@@ -42,7 +42,7 @@ def star_rate_rub() -> float:
         try:
             req = urllib.request.Request(
                 "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=rub",
-                headers={"User-Agent": "playbot"},
+                headers={"User-Agent": "giftswap"},
             )
             with urllib.request.urlopen(req, timeout=5) as resp:
                 usd_rub = json.load(resp)["tether"]["rub"]
