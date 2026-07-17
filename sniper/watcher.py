@@ -29,6 +29,7 @@ ALERT_CHAT_ID = int(os.environ.get("ALERT_CHAT_ID", "0"))
 
 DISCOUNT_THRESHOLD = float(os.environ.get("DISCOUNT_THRESHOLD", "10"))  # % ниже floor
 HOT_THRESHOLD = float(os.environ.get("HOT_THRESHOLD", "20"))            # % для 🔥-пометки
+RESELL_MARGIN = float(os.environ.get("RESELL_MARGIN", "3"))             # % ниже floor для быстрой перепродажи
 POLL_SECONDS = int(os.environ.get("POLL_SECONDS", "25"))
 PAGES_PER_CYCLE = int(os.environ.get("PAGES_PER_CYCLE", "3"))
 PAGE_COUNT = 20
@@ -73,12 +74,16 @@ def _fmt_alert(g: dict, discount: float) -> str:
     number = g.get("number", "")
     collection = g.get("collectionTitle", "")
     link = _nft_link(g.get("collectionTitle") or g.get("collectionName") or "", number)
+    resell = floor * (1 - RESELL_MARGIN / 100)
+    profit_pct = (resell - price) / price * 100 if price else 0
     lines = [
         f"{mark} <b>{discount:.0f}% ниже floor!</b>\n",
         f"{title}" + (f" · {backdrop}" if backdrop else "") + (f" #{number}" if number else ""),
         f"Коллекция: {collection}\n",
         f"Цена: <b>{price:.2f} TON</b>",
         f"Floor: {floor:.2f} TON",
+        f"💡 Продать быстро: <b>~{resell:.2f} TON</b> (на {RESELL_MARGIN:.0f}% ниже floor,"
+        f" всё равно ~{profit_pct:.0f}% навара)",
     ]
     if link:
         lines += ["", link]
