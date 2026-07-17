@@ -17,7 +17,7 @@ from aiogram.client.session.aiohttp import AiohttpSession
 from pyrogram import Client
 
 from . import mrkt_client
-from .tgproxy import pyrogram_proxy
+from .tgproxy import proxy_url, pyrogram_proxy
 
 API_ID = int(os.environ.get("MRKT_API_ID", "0"))
 API_HASH = os.environ.get("MRKT_API_HASH", "")
@@ -130,8 +130,7 @@ async def run():
     logging.basicConfig(level=logging.INFO)
     app = Client(SESSION_NAME, api_id=API_ID, api_hash=API_HASH, workdir=SESSION_DIR,
                  proxy=pyrogram_proxy())
-    bot_proxy_url = os.environ.get("BOT_PROXY", "").strip()
-    bot_session = AiohttpSession(proxy=bot_proxy_url) if bot_proxy_url else None
+    bot_session = AiohttpSession(proxy=proxy_url()) if proxy_url() else None
     bot = Bot(ALERT_BOT_TOKEN, session=bot_session)
     conn = _db()
 
