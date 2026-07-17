@@ -1,0 +1,5 @@
+pyrogram>=2.0
+tgcrypto>=1.2
+curl_cffi>=0.7
+aiogram>=3.4
+aiohttp-socks>=0.9
