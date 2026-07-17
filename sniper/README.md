@@ -8,29 +8,20 @@ Telegram-бот, когда лот выставлен на `DISCOUNT_THRESHOLD`%
 
 Только оповещения — автопокупки нет, вы сами решаете, забирать лот или нет.
 
-## Установка на сервере
+## Установка на сервере (одной командой)
+
+Требует, чтобы основной GiftSwap (`/opt/playbot`) уже был развёрнут и
+обновлён до версии с папкой `sniper/` (`git pull`). Скрипт спросит
+`MRKT_API_ID`/`MRKT_API_HASH` (с my.telegram.org), токен бота-оповещателя
+(от @BotFather) и ваш Telegram id, поставит venv и зависимости, допишет
+`.env` и подготовит systemd-сервис:
 
 ```bash
-cd /opt/playbot
-python3 -m venv sniper/venv
-source sniper/venv/bin/activate
-pip install -r sniper/requirements.txt
+cd /opt/playbot && bash scripts/install-sniper.sh
 ```
 
-## Настройка (.env)
-
-Допишите в `/opt/playbot/.env`:
-
-```
-MRKT_API_ID=...          # с my.telegram.org -> API development tools
-MRKT_API_HASH=...        # оттуда же
-MRKT_SESSION_NAME=mrkt_session
-ALERT_BOT_TOKEN=...      # токен нового бота от @BotFather (/newbot)
-ALERT_CHAT_ID=...        # ваш Telegram id (тот же, что ADMIN_ID)
-DISCOUNT_THRESHOLD=10    # % ниже floor — с этого порога шлём оповещение
-HOT_THRESHOLD=20         # % ниже floor — помечаем 🔥 как особо выгодное
-POLL_SECONDS=25          # как часто проверять
-```
+В конце скрипт подскажет два последних ручных шага: вход под своим
+Telegram-аккаунтом (`sniper/login.py`, см. ниже) и запуск сервиса.
 
 ## Первый запуск — вход под своим Telegram-аккаунтом
 
